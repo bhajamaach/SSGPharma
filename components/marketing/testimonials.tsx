@@ -1,7 +1,3 @@
-"use client";
-
-import { FadeIn } from "@/components/motion/fade-in";
-import { StaggerItem, StaggerList } from "@/components/motion/stagger-list";
 import { Star } from "lucide-react";
 
 const testimonials = [
@@ -35,22 +31,22 @@ export function TestimonialsSection() {
   return (
     <section className="w-full py-16 md:py-24">
       <div className="mx-auto max-w-[1400px] px-4 md:px-8">
-        <FadeIn className="mb-12">
+        <div className="mb-12">
           <h2 className="font-[family-name:var(--font-display)] text-3xl tracking-tight text-foreground md:text-4xl">
             Why hospitals choose us
           </h2>
           <p className="mt-3 max-w-2xl text-lg text-muted-foreground">
             Direct feedback from the people who rely on us every day.
           </p>
-        </FadeIn>
+        </div>
 
-        <StaggerList className="grid gap-6 md:grid-cols-2">
-          {testimonials.map((testimonial, i) => (
-            <StaggerItem key={i}>
+        <ul className="grid gap-6 md:grid-cols-2">
+          {testimonials.map((testimonial) => (
+            <li key={testimonial.author}>
               <div className="group rounded-2xl border border-border/80 bg-card/50 p-6 transition-all hover:border-border hover:bg-card hover:shadow-md md:p-7">
                 <div className="mb-4 flex gap-1">
-                  {Array.from({ length: testimonial.rating }).map((_, j) => (
-                    <Star key={j} className="size-4 fill-primary text-primary" />
+                  {Array.from({ length: testimonial.rating }).map((_, index) => (
+                    <Star key={`${testimonial.author}-${index}`} className="size-4 fill-primary text-primary" />
                   ))}
                 </div>
                 <p className="leading-relaxed text-foreground">&ldquo;{testimonial.quote}&rdquo;</p>
@@ -59,9 +55,9 @@ export function TestimonialsSection() {
                   <p className="text-xs text-muted-foreground">{testimonial.role}</p>
                 </div>
               </div>
-            </StaggerItem>
+            </li>
           ))}
-        </StaggerList>
+        </ul>
       </div>
     </section>
   );

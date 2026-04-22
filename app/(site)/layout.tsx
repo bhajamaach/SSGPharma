@@ -1,6 +1,5 @@
 import { Navbar } from "@/components/web/navbar";
 import { SiteFooter } from "@/components/web/footer";
-import { FloatingInquiry } from "@/components/marketing/floating-inquiry";
 import { formatBusinessDays, formatBusinessHours, getContactConfig } from "@/lib/contact-config";
 
 async function getSiteLayoutData() {
@@ -33,12 +32,6 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
       <Navbar />
       <div className="w-full flex-1">{children}</div>
       <SiteFooter />
-      <FloatingInquiry
-        primaryPhone={layoutData.primaryPhone}
-        primaryPhoneLabel={layoutData.primaryPhoneLabel}
-        primaryEmail={layoutData.primaryEmail}
-        hoursLabel={layoutData.hoursLabel}
-      />
     </div>
   );
 }

@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import "./globals.css";
 import { cn } from "@/lib/utils";
-import { ThemeProvider } from "@/components/theme-provider";
 import { SiteJsonLd } from "@/components/seo/site-json-ld";
 import { getSiteUrl } from "@/lib/site-url";
 
@@ -93,9 +92,7 @@ export default function RootLayout({
       </head>
       <body suppressHydrationWarning className="min-h-full flex flex-col overflow-x-hidden bg-background font-sans text-foreground">
         <SiteJsonLd />
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-          {children}
-        </ThemeProvider>
+        {children}
       </body>
     </html>
   );
