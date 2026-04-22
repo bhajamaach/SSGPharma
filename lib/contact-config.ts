@@ -234,15 +234,13 @@ export function formatBusinessHours(config: Pick<ContactConfigRecord, "businessH
     return "Hours not set";
   }
 
-  const start = new Date();
-  start.setHours(startHour ?? 0, startMinute ?? 0, 0, 0);
-  const end = new Date();
-  end.setHours(endHour ?? 0, endMinute ?? 0, 0, 0);
+  const formatTime = (hour: number, minute: number) => {
+    const h = String(hour).padStart(2, "0");
+    const m = String(minute).padStart(2, "0");
+    return `${h}:${m}`;
+  };
 
-  return `${start.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })} - ${end.toLocaleTimeString("en-IN", {
-    hour: "numeric",
-    minute: "2-digit",
-  })}`;
+  return `${formatTime(startHour ?? 0, startMinute ?? 0)} - ${formatTime(endHour ?? 0, endMinute ?? 0)}`;
 }
 
 export function formatBusinessDays(config: Pick<ContactConfigRecord, "businessDaysMonFri" | "businessDaysSat" | "businessDaysSun">) {
