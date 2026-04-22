@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
   compress: true,
   experimental: {
     optimizePackageImports: ["lucide-react", "@radix-ui/react-icons"],
+    webpackMemoryOptimizations: true,
   },
   images: {
     formats: ["image/avif", "image/webp"],
