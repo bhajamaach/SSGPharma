@@ -295,10 +295,23 @@ function inputToPaise(value: string): number {
 }
 
 function formatDate(value: string) {
-  return new Date(value).toLocaleString("en-IN", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
+  const date = new Date(value);
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  const month = months[date.getUTCMonth()];
+  const year = date.getUTCFullYear();
+  const hours = String(date.getUTCHours()).padStart(2, "0");
+  const minutes = String(date.getUTCMinutes()).padStart(2, "0");
+  return `${day} ${month} ${year}, ${hours}:${minutes} UTC`;
+}
+
+function formatDateOnly(value: string) {
+  const date = new Date(value);
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  const month = months[date.getUTCMonth()];
+  const year = date.getUTCFullYear();
+  return `${day} ${month} ${year}`;
 }
 
 function isCurrentDay(value: string) {
@@ -2430,7 +2443,7 @@ export function AdminDashboard() {
                           <p className="font-semibold text-gray-900">{contact.name}</p>
                           <p className="mt-1 text-sm text-gray-600 break-all">{contact.email}</p>
                         </div>
-                        <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-gray-500">{new Date(contact.createdAt).toLocaleDateString("en-IN")}</span>
+                        <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-gray-500">{formatDateOnly(contact.createdAt)}</span>
                       </div>
                       <p className="mt-3 text-sm leading-6 text-gray-600">{contact.message}</p>
                     </div>
