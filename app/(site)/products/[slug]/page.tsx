@@ -333,7 +333,7 @@ export default async function ProductDetailPage({ params }: Props) {
 
       <article className="bg-background">
         <section className="border-b border-border/60 bg-[radial-gradient(circle_at_top_left,rgba(13,115,119,0.12),transparent_40%),linear-gradient(180deg,rgba(248,250,252,0.96),rgba(255,255,255,0.92))]">
-          <div className="mx-auto grid max-w-350 gap-8 px-4 py-8 md:px-6 lg:grid-cols-[1.06fr_0.94fr] lg:px-8 lg:py-12">
+          <div className="mx-auto grid max-w-[1400px] gap-8 px-4 py-8 md:px-6 lg:grid-cols-[1.06fr_0.94fr] lg:px-8 lg:py-12">
             <div className="space-y-6">
               <Breadcrumbs
                 crumbs={[
@@ -416,7 +416,7 @@ export default async function ProductDetailPage({ params }: Props) {
             </div>
 
             <div className="grid gap-4 lg:grid-cols-[1fr_136px]">
-              <div className="relative min-h-105 overflow-hidden rounded-[2rem] border border-border/70 bg-muted shadow-sm">
+              <div className="relative min-h-[20rem] overflow-hidden rounded-[2rem] border border-border/70 bg-muted shadow-sm sm:min-h-[24rem]">
                 <ManagedImage
                   src={primaryImage}
                   alt={`${product.name} main product image`}
@@ -443,7 +443,7 @@ export default async function ProductDetailPage({ params }: Props) {
           </div>
         </section>
 
-        <section className="mx-auto max-w-350 space-y-8 px-4 py-10 md:px-6 lg:px-8 lg:py-14">
+        <section className="mx-auto max-w-[1400px] space-y-8 px-4 py-10 md:px-6 lg:px-8 lg:py-14">
           <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
             <div className="rounded-[2rem] border border-border/70 bg-card p-6 shadow-sm md:p-8">
               <h2 className="font-[family-name:var(--font-display)] text-3xl text-foreground">Product Description</h2>
@@ -472,9 +472,9 @@ export default async function ProductDetailPage({ params }: Props) {
                   ["Active Ingredient", product.salts || "Not listed"],
                   ["Category", product.category?.name || "Not listed"],
                 ].map(([label, value]) => (
-                  <div key={label} className="flex items-start justify-between gap-4 border-b border-border/60 pb-3 last:border-b-0 last:pb-0">
+                  <div key={label} className="flex flex-col gap-1 border-b border-border/60 pb-3 last:border-b-0 last:pb-0 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                     <dt className="font-medium text-foreground">{label}</dt>
-                    <dd className="max-w-[60%] text-right leading-6 text-muted-foreground">{value}</dd>
+                    <dd className="leading-6 text-muted-foreground sm:max-w-[60%] sm:text-right">{value}</dd>
                   </div>
                 ))}
               </dl>

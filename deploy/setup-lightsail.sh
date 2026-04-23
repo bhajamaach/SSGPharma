@@ -1,30 +1,39 @@
 #!/bin/bash
-set -e
+set -euo pipefail
+
+APP_DIR="${APP_DIR:-/var/www/app}"
+APP_DATA_DIR="${APP_DATA_DIR:-$APP_DIR/data}"
 
 echo "=== Lightsail Initial Setup ==="
+echo "Ensure Lightsail networking allows inbound ports: 22, 80, 443."
+echo "Ensure DNS A records for ssgpharma.com and www.ssgpharma.com point to this instance static IP."
 
-# Update system
-sudo apt-get update -y && sudo apt-get upgrade -y
+echo "=== Updating system packages ==="
+sudo apt-get update -y
+sudo apt-get upgrade -y
 
-# Install Node.js 20 LTS
+echo "=== Installing base dependencies ==="
+sudo apt-get install -y git curl nginx certbot python3-certbot-nginx
+
+echo "=== Installing Node.js 20 LTS ==="
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt-get install -y nodejs
 
-# Install pnpm
-npm install -g pnpm
+echo "=== Installing pnpm and PM2 ==="
+sudo npm install -g pnpm pm2
 
-# Install PM2 process manager
-npm install -g pm2
+echo "=== Creating app directories ==="
+sudo mkdir -p "$APP_DIR" "$APP_DATA_DIR"
+sudo chown -R "$USER:$USER" "$APP_DIR"
 
-# Install git if not present
-sudo apt-get install -y git
+echo "=== Enabling Nginx ==="
+sudo systemctl enable nginx
+sudo systemctl start nginx
 
-# Create app directory
-sudo mkdir -p /var/www/app
-sudo chown -R $USER:$USER /var/www/app
+echo "=== Configuring PM2 startup ==="
+pm2 startup systemd -u "$USER" --hp "$HOME" || true
+sudo env PATH="$PATH" pm2 startup systemd -u "$USER" --hp "$HOME" || true
+pm2 save || true
 
-# Setup PM2 to start on reboot
-pm2 startup systemd -u $USER --hp $HOME
-sudo env PATH=$PATH:/usr/bin pm2 startup systemd -u $USER --hp $HOME
-
-echo "=== Setup complete. Now run deploy/first-deploy.sh ==="
+echo "=== Setup complete ==="
+echo "Next step: run deploy/bootstrap.sh (preferred) or deploy/first-deploy.sh."

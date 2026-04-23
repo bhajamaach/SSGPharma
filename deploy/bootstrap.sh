@@ -1,0 +1,42 @@
+#!/bin/bash
+set -euo pipefail
+
+APP_DIR="${APP_DIR:-/var/www/app}"
+REPO_URL="${REPO_URL:-}"
+DOMAIN="${DOMAIN:-ssgpharma.com}"
+WWW_DOMAIN="${WWW_DOMAIN:-www.ssgpharma.com}"
+APP_PORT="${APP_PORT:-5050}"
+CERTBOT_EMAIL="${CERTBOT_EMAIL:-}"
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+echo "=== Bootstrap: system setup ==="
+bash "$SCRIPT_DIR/setup-lightsail.sh"
+
+if [ -d "$APP_DIR/.git" ]; then
+  echo "=== Existing app repository detected at ${APP_DIR}; running deploy update ==="
+  APP_DIR="$APP_DIR" APP_PORT="$APP_PORT" bash "$APP_DIR/deploy/deploy.sh"
+else
+  if [ -z "$REPO_URL" ]; then
+    echo "ERROR: REPO_URL is required when ${APP_DIR} is not initialized."
+    echo "Usage: REPO_URL=https://github.com/youruser/yourrepo.git CERTBOT_EMAIL=you@example.com bash deploy/bootstrap.sh"
+    exit 1
+  fi
+  echo "=== Fresh app setup; cloning and deploying repository ==="
+  APP_DIR="$APP_DIR" REPO_URL="$REPO_URL" APP_PORT="$APP_PORT" bash "$SCRIPT_DIR/first-deploy.sh"
+fi
+
+echo "=== Bootstrap: Nginx setup ==="
+DOMAIN="$DOMAIN" WWW_DOMAIN="$WWW_DOMAIN" APP_PORT="$APP_PORT" bash "$APP_DIR/deploy/setup-nginx.sh"
+
+echo "=== Bootstrap: SSL setup ==="
+if [ -z "$CERTBOT_EMAIL" ]; then
+  echo "ERROR: CERTBOT_EMAIL is required for SSL setup."
+  exit 1
+fi
+DOMAIN="$DOMAIN" WWW_DOMAIN="$WWW_DOMAIN" CERTBOT_EMAIL="$CERTBOT_EMAIL" bash "$APP_DIR/deploy/setup-ssl.sh"
+
+echo "=== Bootstrap: health checks ==="
+APP_URL="https://${DOMAIN}" APP_PORT="$APP_PORT" bash "$APP_DIR/deploy/check-health.sh"
+
+echo "=== Bootstrap complete ==="

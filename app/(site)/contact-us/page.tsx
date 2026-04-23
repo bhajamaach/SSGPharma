@@ -108,8 +108,8 @@ export default async function ContactPage() {
               <h2 className="text-sm font-semibold uppercase tracking-wider text-primary">{channel.title}</h2>
               <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{channel.body}</p>
               <ul className="mt-4 space-y-2 text-foreground">
-                {channel.lines.map((line) => (
-                  <li key={line.label} className="text-sm md:text-base">
+                {channel.lines.map((line, lineIndex) => (
+                  <li key={`${channel.title}-${line.href}-${line.label}-${lineIndex}`} className="text-sm md:text-base">
                     <a className="transition-colors hover:text-primary" href={line.href}>
                       {line.label}
                     </a>

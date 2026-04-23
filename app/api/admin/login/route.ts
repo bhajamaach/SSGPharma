@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { parseJsonBody, internalServerError } from "@/lib/api";
-import { getAdminSessionSecret } from "@/lib/admin-env";
+import { getAdminSessionSecret, getBootstrapAdminPassword } from "@/lib/admin-env";
 import { setAdminSessionCookie } from "@/lib/admin-session";
 import { prisma } from "@/lib/prisma";
 import { adminLoginSchema } from "@/lib/validators/auth";
@@ -36,7 +36,7 @@ export async function POST(request: Request): Promise<Response> {
   const secret = getAdminSessionSecret();
   if (secret.length < 32) {
     return NextResponse.json(
-      { error: "Server misconfigured: ADMIN_SESSION_SECRET must be at least 32 characters in .env" },
+      { error: "Server misconfigured: ADMIN_SESSION_SECRET (or legacy SESSION_SECRET) must be at least 32 characters in .env" },
       { status: 500 },
     );
   }
@@ -56,10 +56,25 @@ export async function POST(request: Request): Promise<Response> {
     const dbAdmin = await prisma.adminUser.findFirst({
       where: { isActive: true },
       orderBy: { createdAt: "asc" },
-      select: { passwordHash: true },
+      select: { id: true, passwordHash: true },
     });
-    const storedHash = dbAdmin?.passwordHash ?? "";
-    const valid = storedHash ? await bcrypt.compare(password, storedHash) : false;
+    const bootstrapPassword = getBootstrapAdminPassword();
+    let valid = false;
+
+    if (dbAdmin?.passwordHash) {
+      valid = await bcrypt.compare(password, dbAdmin.passwordHash);
+    } else if (bootstrapPassword.length > 0 && password === bootstrapPassword) {
+      const passwordHash = await bcrypt.hash(password, 12);
+      await prisma.adminUser.create({
+        data: {
+          email: "admin@medipro.local",
+          name: "Admin",
+          passwordHash,
+          role: "admin",
+        },
+      });
+      valid = true;
+    }
 
     if (!valid) {
       await new Promise((resolve) => setTimeout(resolve, 400));

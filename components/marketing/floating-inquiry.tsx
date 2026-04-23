@@ -21,7 +21,7 @@ export function FloatingInquiry({ primaryPhone, primaryPhoneLabel, primaryEmail,
       {/* Floating Button */}
       <motion.button
         onClick={() => setOpen(!open)}
-        className="fixed bottom-6 right-6 z-40 flex size-14 items-center justify-center rounded-full bg-primary text-white shadow-lg transition-all hover:shadow-xl active:scale-95 md:size-16"
+        className="fixed bottom-4 right-4 z-40 flex size-13 items-center justify-center rounded-full bg-primary text-white shadow-lg transition-all hover:shadow-xl active:scale-95 sm:bottom-5 sm:right-5 md:bottom-6 md:right-6 md:size-16"
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
       >
@@ -32,7 +32,7 @@ export function FloatingInquiry({ primaryPhone, primaryPhoneLabel, primaryEmail,
       <AnimatePresence>
         {open && (
           <motion.div
-            className="fixed bottom-24 right-6 z-40 w-80 rounded-2xl border-2 border-border bg-card/95 backdrop-blur shadow-2xl md:bottom-28 md:right-8"
+            className="fixed bottom-20 left-3 right-3 z-40 rounded-2xl border-2 border-border bg-card/95 backdrop-blur shadow-2xl sm:bottom-24 sm:left-auto sm:right-4 sm:w-[min(22rem,calc(100vw-2rem))] md:bottom-28 md:right-8"
             initial={{ opacity: 0, scale: 0.8, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.8, y: 20 }}

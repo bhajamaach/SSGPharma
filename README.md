@@ -1,36 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Medipro
 
-## Getting Started
+## Local setup
 
-First, run the development server:
+1. Install dependencies:
+   ```bash
+   pnpm install
+   ```
+2. Create your env file if needed:
+   ```bash
+   cp .env.example .env
+   ```
+3. Make sure these values are correct in `.env`:
+   ```bash
+   NODE_ENV=development
+   NEXT_PUBLIC_SITE_URL=http://localhost:3000
+   DATABASE_URL="file:./dev.db"
+   ADMIN_SESSION_SECRET=replace-with-a-random-32-plus-character-secret
+   ADMIN_PASSWORD=change-me-before-use
+   ```
+
+Important notes:
+
+- `DATABASE_URL` must be `file:./dev.db` for local SQLite. Using `file:./prisma/dev.db` will resolve to `prisma/prisma/dev.db` because Prisma resolves relative SQLite paths from `prisma/schema.prisma`.
+- `ADMIN_SESSION_SECRET` is the current env name. `SESSION_SECRET` is still accepted as a legacy fallback.
+- `ADMIN_PASSWORD` is optional and only used as a bootstrap login when no `AdminUser` row exists yet.
+
+4. Apply migrations:
+   ```bash
+   pnpm prisma migrate dev
+   ```
+5. If you want to create or reset the admin password in the database:
+   ```bash
+   bash deploy/reset-admin-password.sh
+   ```
+6. Start the app:
+   ```bash
+   pnpm dev
+   ```
+
+The site will be available at [http://localhost:3000](http://localhost:3000). The admin login is at `/admin`.
+
+## Production build
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm build
+pnpm start
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`pnpm start` serves the standalone build on port `5050`. The AWS deploy scripts in `deploy/` use PM2 and run the standalone server directly on port `3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Deploy notes
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- This project currently uses Prisma with SQLite. That is fine on a single server with persistent disk, but it is a poor fit for serverless platforms that do not provide a writable persistent filesystem.
+- If you want to stay on AWS, the simplest path is a single Lightsail instance with PM2 plus nginx or Caddy in front. The repo already includes scripts for that under `deploy/`.
+- If you want the easiest managed deployment, move the database to Postgres first, then deploy to a platform like Vercel, Render, or Railway.
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+More AWS-specific steps are in [deploy/README.md](/Users/kanishkadas/Desktop/altamash-paid/medipro/deploy/README.md).

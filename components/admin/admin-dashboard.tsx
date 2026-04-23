@@ -1162,30 +1162,51 @@ export function AdminDashboard() {
               <h1 className="mt-2 text-3xl font-semibold tracking-tight text-gray-900">SSG Pharma Management</h1>
               <p className="mt-2 text-sm text-gray-500">Catalog, molecules, contacts, and account settings in one place.</p>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {tabs.map((tab) => {
-                const Icon = tab.icon;
-                const active = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition ${
-                      active
-                        ? "border-[#0D7377] bg-[#0D7377] text-white shadow-sm"
-                        : "border-gray-200 bg-white text-gray-600 hover:border-[#0D7377]/40 hover:text-[#0D7377] active:scale-[0.99]"
-                    }`}
-                  >
-                    <Icon className="h-4 w-4" />
-                    <span>{tab.label}</span>
-                  </button>
-                );
-              })}
+            <div className="flex w-full flex-col gap-3 lg:w-auto">
+              <div className="md:hidden">
+                <label htmlFor="admin-tab-select" className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
+                  Section
+                </label>
+                <select
+                  id="admin-tab-select"
+                  value={activeTab}
+                  onChange={(event) => setActiveTab(event.target.value as TabId)}
+                  className="flex h-11 w-full rounded-2xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 outline-none transition focus:border-[#0D7377] focus:ring-4 focus:ring-[#0D7377]/10"
+                >
+                  {tabs.map((tab) => (
+                    <option key={tab.id} value={tab.id}>
+                      {tab.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="hidden flex-wrap items-center gap-2 md:flex">
+                {tabs.map((tab) => {
+                  const Icon = tab.icon;
+                  const active = activeTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition ${
+                        active
+                          ? "border-[#0D7377] bg-[#0D7377] text-white shadow-sm"
+                          : "border-gray-200 bg-white text-gray-600 hover:border-[#0D7377]/40 hover:text-[#0D7377] active:scale-[0.99]"
+                      }`}
+                    >
+                      <Icon className="h-4 w-4" />
+                      <span>{tab.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
               <Button
                 type="button"
                 variant="outline"
-                className="border-gray-300 bg-white text-gray-700 hover:border-[#0D7377] hover:text-[#0D7377]"
+                className="w-full border-gray-300 bg-white text-gray-700 hover:border-[#0D7377] hover:text-[#0D7377] md:w-auto"
                 onClick={handleLogout}
                 disabled={logoutSaving}
               >
@@ -1320,30 +1341,57 @@ export function AdminDashboard() {
                 ) : filteredProducts.length === 0 ? (
                   <EmptyState icon={Boxes} title="No products found" description="Try a different search term or add a new product to start building the catalog." />
                 ) : (
-                  <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
-                        <tr className="text-left text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
-                          <th className="px-6 py-4">Name</th>
-                          <th className="px-6 py-4">Slug</th>
-                          <th className="px-6 py-4">Category</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100">
-                        {filteredProducts.map((product) => (
-                          <tr
-                            key={product.id}
-                            onClick={() => openEditProductForm(product)}
-                            className="cursor-pointer transition hover:bg-[#0D7377]/5 active:bg-[#0D7377]/10"
-                          >
-                            <td className="px-6 py-4 font-medium text-gray-900">{product.name}</td>
-                            <td className="px-6 py-4 text-sm text-gray-600">{product.slug}</td>
-                            <td className="px-6 py-4 text-sm text-gray-600">{product.category?.name ?? "Uncategorized"}</td>
+                  <>
+                    <div className="space-y-3 md:hidden">
+                      {filteredProducts.map((product) => (
+                        <button
+                          key={product.id}
+                          type="button"
+                          onClick={() => openEditProductForm(product)}
+                          className="w-full rounded-2xl border border-gray-200 bg-white p-4 text-left shadow-sm transition hover:border-[#0D7377]/30 hover:bg-[#0D7377]/[0.03]"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="font-semibold text-gray-900">{product.name}</p>
+                              <p className="mt-1 text-xs uppercase tracking-[0.16em] text-gray-500">{product.slug}</p>
+                            </div>
+                            <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${product.isActive ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-600"}`}>
+                              {product.isActive ? "Active" : "Inactive"}
+                            </span>
+                          </div>
+                          <div className="mt-3 grid gap-2 text-sm text-gray-600">
+                            <p><span className="font-medium text-gray-900">Category:</span> {product.category?.name ?? "Uncategorized"}</p>
+                            <p><span className="font-medium text-gray-900">Price:</span> {paiseToInput(product.pricePaise)}</p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="hidden overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm md:block">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr className="text-left text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
+                            <th className="px-6 py-4">Name</th>
+                            <th className="px-6 py-4">Slug</th>
+                            <th className="px-6 py-4">Category</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {filteredProducts.map((product) => (
+                            <tr
+                              key={product.id}
+                              onClick={() => openEditProductForm(product)}
+                              className="cursor-pointer transition hover:bg-[#0D7377]/5 active:bg-[#0D7377]/10"
+                            >
+                              <td className="px-6 py-4 font-medium text-gray-900">{product.name}</td>
+                              <td className="px-6 py-4 text-sm text-gray-600">{product.slug}</td>
+                              <td className="px-6 py-4 text-sm text-gray-600">{product.category?.name ?? "Uncategorized"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
                 )}
               </>
             ) : (
@@ -1822,28 +1870,52 @@ export function AdminDashboard() {
                     ) : filteredMolecules.length === 0 ? (
                       <EmptyState icon={FlaskConical} title="No molecules found" description="Adjust the search or filter settings, or add a new molecule record." />
                     ) : (
-                      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                        <table className="min-w-full divide-y divide-gray-200">
-                          <thead className="bg-gray-50">
-                            <tr className="text-left text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
-                              <th className="px-6 py-4">Name</th>
-                              <th className="px-6 py-4">Slug</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-100">
-                            {filteredMolecules.map((molecule) => (
-                              <tr
-                                key={molecule.id}
-                                onClick={() => openEditMoleculeForm(molecule)}
-                                className="cursor-pointer transition hover:bg-[#0D7377]/5 active:bg-[#0D7377]/10"
-                              >
-                                <td className="px-6 py-4 font-medium text-gray-900">{molecule.name}</td>
-                                <td className="px-6 py-4 text-sm text-gray-600">{molecule.slug}</td>
+                      <>
+                        <div className="space-y-3 md:hidden">
+                          {filteredMolecules.map((molecule) => (
+                            <button
+                              key={molecule.id}
+                              type="button"
+                              onClick={() => openEditMoleculeForm(molecule)}
+                              className="w-full rounded-2xl border border-gray-200 bg-white p-4 text-left shadow-sm transition hover:border-[#0D7377]/30 hover:bg-[#0D7377]/[0.03]"
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <div>
+                                  <p className="font-semibold text-gray-900">{molecule.name}</p>
+                                  <p className="mt-1 text-xs uppercase tracking-[0.16em] text-gray-500">{molecule.slug}</p>
+                                </div>
+                                <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${molecule.isPublished ? "bg-primary/12 text-[#0D7377]" : "bg-gray-100 text-gray-600"}`}>
+                                  {molecule.isPublished ? "Published" : "Draft"}
+                                </span>
+                              </div>
+                              {molecule.synonyms ? <p className="mt-3 text-sm text-gray-600">{molecule.synonyms}</p> : null}
+                            </button>
+                          ))}
+                        </div>
+
+                        <div className="hidden overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm md:block">
+                          <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                              <tr className="text-left text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
+                                <th className="px-6 py-4">Name</th>
+                                <th className="px-6 py-4">Slug</th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                              {filteredMolecules.map((molecule) => (
+                                <tr
+                                  key={molecule.id}
+                                  onClick={() => openEditMoleculeForm(molecule)}
+                                  className="cursor-pointer transition hover:bg-[#0D7377]/5 active:bg-[#0D7377]/10"
+                                >
+                                  <td className="px-6 py-4 font-medium text-gray-900">{molecule.name}</td>
+                                  <td className="px-6 py-4 text-sm text-gray-600">{molecule.slug}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </>
                     )}
                   </div>
 
@@ -2146,8 +2218,75 @@ export function AdminDashboard() {
             {categoriesState === "loading" ? (
               <TableSkeleton columns={3} />
             ) : (
-              <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                <table className="min-w-full divide-y divide-gray-200">
+              <div className="space-y-4">
+                {(isAddingCategory || editingCategoryId) && (
+                  <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm md:hidden">
+                    <form onSubmit={saveCategory} className="grid gap-3">
+                      <Input
+                        value={categoryForm.name}
+                        onChange={(event) =>
+                          setCategoryForm((current) => ({
+                            ...current,
+                            name: event.target.value,
+                            slug: slugify(event.target.value),
+                          }))
+                        }
+                        placeholder="Category name"
+                        className={fieldClassName}
+                      />
+                      <Input
+                        value={categoryForm.slug}
+                        onChange={(event) => setCategoryForm((current) => ({ ...current, slug: slugify(event.target.value) }))}
+                        placeholder="category-slug"
+                        className={fieldClassName}
+                      />
+                      <Input
+                        value={categoryForm.description}
+                        onChange={(event) => setCategoryForm((current) => ({ ...current, description: event.target.value }))}
+                        placeholder="Description"
+                        className={fieldClassName}
+                      />
+                      <div className="flex gap-2">
+                        <Button type="submit" className="bg-[#0D7377] text-white hover:bg-[#0b6669]" disabled={categorySaving}>
+                          {categorySaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+                        </Button>
+                        <Button type="button" variant="outline" className="border-gray-300" onClick={resetCategoryEditor}>
+                          Cancel
+                        </Button>
+                      </div>
+                    </form>
+                  </div>
+                )}
+
+                <div className="space-y-3 md:hidden">
+                  {categories.map((category) => (
+                    <div key={category.id} className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-semibold text-gray-900">{category.name}</p>
+                          <p className="mt-1 text-xs uppercase tracking-[0.16em] text-gray-500">{category.slug}</p>
+                        </div>
+                        <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${category.isActive ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-600"}`}>
+                          {category.isActive ? "Active" : "Inactive"}
+                        </span>
+                      </div>
+                      <p className="mt-3 text-sm text-gray-600">{category.description || "No description"}</p>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <Button type="button" variant="outline" className="border-gray-300" onClick={() => beginEditCategory(category)}>
+                          <Pencil className="h-4 w-4" />
+                          Edit
+                        </Button>
+                        <Button type="button" variant="outline" className="border-gray-300" onClick={() => deleteCategory(category.id)}>
+                          <Trash2 className="h-4 w-4" />
+                          Delete
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="hidden overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm md:block">
+                  <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr className="text-left text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
                       <th className="px-6 py-4">Name</th>
@@ -2257,7 +2396,8 @@ export function AdminDashboard() {
                       </Fragment>
                     ))}
                   </tbody>
-                </table>
+                  </table>
+                </div>
               </div>
             )}
           </div>
@@ -2281,28 +2421,45 @@ export function AdminDashboard() {
             ) : contacts.length === 0 ? (
               <EmptyState icon={Mail} title="No contact submissions" description="When visitors submit the contact or quote forms, rows will appear here." />
             ) : (
-              <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr className="text-left text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
-                      <th className="px-6 py-4">Name</th>
-                      <th className="px-6 py-4">Email</th>
-                      <th className="px-6 py-4">Message</th>
-                      <th className="px-6 py-4">Date</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {contacts.map((contact) => (
-                      <tr key={contact.id}>
-                        <td className="px-6 py-4 font-medium text-gray-900">{contact.name}</td>
-                        <td className="px-6 py-4 text-sm text-gray-600">{contact.email}</td>
-                        <td className="px-6 py-4 text-sm text-gray-600">{contact.message}</td>
-                        <td className="px-6 py-4 text-sm text-gray-600">{formatDate(contact.createdAt)}</td>
+              <>
+                <div className="space-y-3 md:hidden">
+                  {contacts.map((contact) => (
+                    <div key={contact.id} className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-semibold text-gray-900">{contact.name}</p>
+                          <p className="mt-1 text-sm text-gray-600 break-all">{contact.email}</p>
+                        </div>
+                        <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-gray-500">{new Date(contact.createdAt).toLocaleDateString("en-IN")}</span>
+                      </div>
+                      <p className="mt-3 text-sm leading-6 text-gray-600">{contact.message}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="hidden overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm md:block">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr className="text-left text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
+                        <th className="px-6 py-4">Name</th>
+                        <th className="px-6 py-4">Email</th>
+                        <th className="px-6 py-4">Message</th>
+                        <th className="px-6 py-4">Date</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {contacts.map((contact) => (
+                        <tr key={contact.id}>
+                          <td className="px-6 py-4 font-medium text-gray-900">{contact.name}</td>
+                          <td className="px-6 py-4 text-sm text-gray-600">{contact.email}</td>
+                          <td className="px-6 py-4 text-sm text-gray-600">{contact.message}</td>
+                          <td className="px-6 py-4 text-sm text-gray-600">{formatDate(contact.createdAt)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </div>
         ) : null}
