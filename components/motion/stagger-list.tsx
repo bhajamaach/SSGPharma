@@ -1,10 +1,20 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import type { ReactNode } from "react";
 
 export function StaggerList({ children, className }: { children: ReactNode; className?: string }) {
   const reduce = useReducedMotion();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return <ul className={className}>{children}</ul>;
+  }
 
   return (
     <motion.ul
@@ -30,6 +40,15 @@ export function StaggerList({ children, className }: { children: ReactNode; clas
 
 export function StaggerItem({ children, className }: { children: ReactNode; className?: string }) {
   const reduce = useReducedMotion();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return <li className={className}>{children}</li>;
+  }
 
   return (
     <motion.li

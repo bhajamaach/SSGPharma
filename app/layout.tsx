@@ -47,6 +47,11 @@ export const metadata: Metadata = {
     description: "Specialty medicine supply for hospitals, pharmacies, and distributors across India.",
     images: ["/og-image.jpg"],
   },
+  formatDetection: {
+    telephone: false,
+    address: false,
+    email: false,
+  },
   robots: { index: true, follow: true, googleBot: { index: true, follow: true } },
   icons: {
     icon: "/favicon.ico",

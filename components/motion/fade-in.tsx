@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import type { ReactNode } from "react";
 
@@ -16,6 +17,15 @@ type FadeInProps = {
  */
 export function FadeIn({ children, className, delay = 0, y = 14 }: FadeInProps) {
   const reduce = useReducedMotion();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return <div className={className}>{children}</div>;
+  }
 
   return (
     <motion.div
