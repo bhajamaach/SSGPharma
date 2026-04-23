@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: medipro
+    runtime: node
+    plan: starter
+    region: singapore
+    buildCommand: pnpm install --frozen-lockfile && pnpm build:standalone
+    startCommand: pnpm start:render
+    healthCheckPath: /
+    autoDeployTrigger: commit
+    disk:
+      name: medipro-data
+      mountPath: /var/data
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        value: file:/var/data/prod.db
+      - key: NEXT_PUBLIC_SITE_URL
+        sync: false
+      - key: ADMIN_SESSION_SECRET
+        generateValue: true
+      - key: ADMIN_PASSWORD
+        sync: false
