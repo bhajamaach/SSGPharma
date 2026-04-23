@@ -110,7 +110,7 @@ export default async function ContactPage() {
               <ul className="mt-4 space-y-2 text-foreground">
                 {channel.lines.map((line, lineIndex) => (
                   <li key={`${channel.title}-${line.href}-${line.label}-${lineIndex}`} className="text-sm md:text-base">
-                    <a className="transition-colors hover:text-primary" href={line.href}>
+                    <a suppressHydrationWarning className="transition-colors hover:text-primary" href={line.href}>
                       {line.label}
                     </a>
                   </li>
@@ -158,7 +158,7 @@ export default async function ContactPage() {
             <p className="mt-4 text-muted-foreground leading-relaxed">
               This address is managed from the admin contact settings and appears across the live frontend.
             </p>
-            <p className="mt-4 rounded-xl border border-dashed border-border bg-muted/30 p-4 text-sm text-foreground">
+            <p suppressHydrationWarning className="mt-4 rounded-xl border border-dashed border-border bg-muted/30 p-4 text-sm text-foreground">
               {address || "Address not set"}
             </p>
           </FadeIn>

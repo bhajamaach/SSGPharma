@@ -14,9 +14,9 @@ export function SiteFooter() {
             {contactConfig.businessType}. Wholesale and specialty medicines with careful handling and responsive support.
           </p>
           <div className="space-y-2 text-sm text-foreground/72">
-            {contactConfig.officeAddress ? <p>{contactConfig.officeAddress}</p> : null}
-            <p>{[contactConfig.officeCity, contactConfig.officeState, contactConfig.officeZipCode].filter(Boolean).join(", ")}</p>
-            <p>
+            {contactConfig.officeAddress ? <p suppressHydrationWarning>{contactConfig.officeAddress}</p> : null}
+            <p suppressHydrationWarning>{[contactConfig.officeCity, contactConfig.officeState, contactConfig.officeZipCode].filter(Boolean).join(", ")}</p>
+            <p suppressHydrationWarning>
               {formatBusinessDays(contactConfig)} · {formatBusinessHours(contactConfig)}
             </p>
           </div>
@@ -63,7 +63,7 @@ export function SiteFooter() {
           <ul className="space-y-2 text-foreground/72">
             {contactConfig.phones.map((phone) => (
               <li key={phone.id}>
-                <a className="transition-colors duration-200 hover:text-foreground" href={formatPhoneHref(phone.value)}>
+                <a suppressHydrationWarning className="transition-colors duration-200 hover:text-foreground" href={formatPhoneHref(phone.value)}>
                   {phone.description ? `${phone.description}: ` : ""}
                   {phone.value}
                 </a>
@@ -71,7 +71,7 @@ export function SiteFooter() {
             ))}
             {contactConfig.emails.map((email) => (
               <li key={email.id}>
-                <a className="transition-colors duration-200 hover:text-foreground" href={formatMailtoHref(email.value)}>
+                <a suppressHydrationWarning className="transition-colors duration-200 hover:text-foreground" href={formatMailtoHref(email.value)}>
                   {email.value}
                 </a>
               </li>
