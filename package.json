@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build": "prisma generate && next build --webpack",
     "build:standalone": "pnpm build && node scripts/standalone-setup.mjs",
     "start": "PORT=5050 node .next/standalone/server.js",
     "start:standalone": "node .next/standalone/server.js",
