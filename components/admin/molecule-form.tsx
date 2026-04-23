@@ -189,7 +189,7 @@ export function MoleculeForm({ moleculeId, onSave, onCancel }: MoleculeFormProps
 
       {/* Timestamps */}
       <div className="border p-4 rounded-lg">
-        <p className="text-sm text-gray-600">Created at: {moleculeId ? new Date().toLocaleString() : 'N/A'}</p>
+        <p className="text-sm text-gray-600">Created at: {moleculeId ? "Loaded from admin record" : "N/A"}</p>
       </div>
 
       {/* Form Actions */}

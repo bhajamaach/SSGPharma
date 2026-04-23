@@ -4,9 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { FadeIn } from "@/components/motion/fade-in";
 import { ManagedImage } from "@/components/web/managed-image";
-import { buttonVariants } from "@/components/ui/button";
 import { marketingImages } from "@/lib/marketing-images";
-import { cn } from "@/lib/utils";
 import { summarizeText } from "@/lib/content-parsers";
 import { Search } from "lucide-react";
 

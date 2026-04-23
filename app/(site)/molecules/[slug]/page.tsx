@@ -58,6 +58,16 @@ function MoleculeSection({ title, content }: { title: string; content?: string |
 
 export const revalidate = 3600;
 
+export async function generateStaticParams() {
+  const molecules = await prisma.molecule.findMany({
+    where: { isPublished: true },
+    select: { slug: true },
+  });
+  return molecules.map((molecule) => ({ slug: molecule.slug }));
+}
+
+export const dynamicParams = true;
+
 async function loadMoleculePageData(paramsPromise: Props["params"]) {
   try {
     const { slug } = await paramsPromise;

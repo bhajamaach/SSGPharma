@@ -9,7 +9,6 @@ import { marketingImages } from "@/lib/marketing-images";
 import { prisma } from "@/lib/prisma";
 import { getSiteUrl } from "@/lib/site-url";
 import { cn } from "@/lib/utils";
-import { summarizeText } from "@/lib/content-parsers";
 import { MoleculesSearch } from "@/components/molecules/molecules-search";
 
 const siteUrl = getSiteUrl();

@@ -115,6 +115,13 @@ function ProductShelfCard({
 
 export const revalidate = 3600;
 
+export async function generateStaticParams() {
+  const items = await prisma.product.findMany({ select: { slug: true } });
+  return items.map((item) => ({ slug: item.slug }));
+}
+
+export const dynamicParams = true;
+
 async function loadProductPageData(paramsPromise: Props["params"]) {
   try {
     const { slug } = await paramsPromise;

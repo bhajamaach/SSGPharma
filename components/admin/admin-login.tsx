@@ -37,6 +37,7 @@ export function AdminLogin() {
         return;
       }
       setPassword("");
+      router.replace("/admin");
       router.refresh();
     } catch {
       setError("Network error — try again");

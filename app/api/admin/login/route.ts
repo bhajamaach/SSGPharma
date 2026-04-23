@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { parseJsonBody, internalServerError } from "@/lib/api";
-import { getAdminPasswordFallback, getAdminPasswordHash, getAdminSessionSecret } from "@/lib/admin-env";
-import { adminPasswordMatches } from "@/lib/auth-password";
+import { getAdminSessionSecret } from "@/lib/admin-env";
 import { setAdminSessionCookie } from "@/lib/admin-session";
 import { prisma } from "@/lib/prisma";
 import { adminLoginSchema } from "@/lib/validators/auth";
@@ -59,25 +58,18 @@ export async function POST(request: Request): Promise<Response> {
       orderBy: { createdAt: "asc" },
       select: { passwordHash: true },
     });
-    const envHash = getAdminPasswordHash();
-    const envFallback = getAdminPasswordFallback();
-    const passwordMatches = dbAdmin
-      ? await bcrypt.compare(password, dbAdmin.passwordHash)
-      : envHash
-        ? await bcrypt.compare(password, envHash)
-        : envFallback
-          ? await adminPasswordMatches(password, envFallback)
-          : false;
+    const storedHash = dbAdmin?.passwordHash ?? "";
+    const valid = storedHash ? await bcrypt.compare(password, storedHash) : false;
 
-    if (!passwordMatches) {
+    if (!valid) {
       await new Promise((resolve) => setTimeout(resolve, 400));
-      return NextResponse.json({ error: "Wrong password" }, { status: 401 });
+      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
     }
 
     await setAdminSessionCookie();
     clearRateLimit(ip);
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, redirectTo: "/admin" });
   } catch {
     return internalServerError();
   }

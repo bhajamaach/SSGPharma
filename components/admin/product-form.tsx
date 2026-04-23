@@ -323,7 +323,7 @@ export function ProductForm({ productId, onSave, onCancel }: ProductFormProps) {
 
       {/* Timestamps */}
       <div className="border p-4 rounded-lg">
-        <p className="text-sm text-gray-600">Created at: {productId ? new Date().toLocaleString() : 'N/A'}</p>
+        <p className="text-sm text-gray-600">Created at: {productId ? "Loaded from admin record" : "N/A"}</p>
       </div>
 
       {/* Form Actions */}

@@ -1,8 +1,6 @@
 import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
 import { parseJsonBody, internalServerError } from "@/lib/api";
-import { getAdminPasswordFallback, getAdminPasswordHash } from "@/lib/admin-env";
-import { adminPasswordMatches } from "@/lib/auth-password";
 import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/require-admin";
 import { changePasswordSchema } from "@/lib/validators/auth";
@@ -24,29 +22,7 @@ export async function POST(request: Request): Promise<Response> {
     });
 
     if (!admin) {
-      const envHash = getAdminPasswordHash();
-      const envPassword = getAdminPasswordFallback();
-      const passwordOk = envHash
-        ? await bcrypt.compare(currentPassword, envHash)
-        : envPassword
-          ? await adminPasswordMatches(currentPassword, envPassword)
-          : false;
-
-      if (!passwordOk) {
-        return NextResponse.json({ error: "Current password is incorrect" }, { status: 401 });
-      }
-
-      const passwordHash = await bcrypt.hash(newPassword, 12);
-      await prisma.adminUser.create({
-        data: {
-          email: "admin@medipro.local",
-          name: "Admin",
-          passwordHash,
-          role: "admin",
-        },
-      });
-
-      return NextResponse.json({ success: true });
+      return NextResponse.json({ error: "Admin user not found" }, { status: 404 });
     }
 
     const passwordOk = await bcrypt.compare(currentPassword, admin.passwordHash);

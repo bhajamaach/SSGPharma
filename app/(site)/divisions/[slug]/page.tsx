@@ -3,8 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FadeIn } from "@/components/motion/fade-in";
 import { ManagedImage } from "@/components/web/managed-image";
-import { getProductDivision } from "@/lib/divisions";
-import { getStableMarketingFallback } from "@/lib/marketing-images";
+import { getProductDivision, productDivisions, type ProductDivision } from "@/lib/divisions";
+import { getStableMarketingFallback, marketingImages } from "@/lib/marketing-images";
 import { formatInrFromPaise } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
 import { getSiteUrl } from "@/lib/site-url";
@@ -14,10 +14,47 @@ type Props = { params: Promise<{ slug: string }> };
 
 export const revalidate = 3600;
 
+export async function generateStaticParams() {
+  const categories = await prisma.category.findMany({
+    where: { isActive: true },
+    select: { slug: true },
+  });
+  const slugs = new Set([...productDivisions.map((division) => division.slug), ...categories.map((category) => category.slug)]);
+  return Array.from(slugs).map((slug) => ({ slug }));
+}
+
+export const dynamicParams = true;
+
+async function getDivisionConfig(slug: string): Promise<ProductDivision | null> {
+  const configuredDivision = getProductDivision(slug);
+  if (configuredDivision) return configuredDivision;
+
+  const category = await prisma.category.findUnique({
+    where: { slug },
+    select: {
+      name: true,
+      slug: true,
+      description: true,
+      isActive: true,
+    },
+  });
+
+  if (!category?.isActive) return null;
+
+  return {
+    slug: category.slug,
+    title: category.name,
+    catalogCategory: category.name,
+    blurb: category.description || `Browse ${category.name.toLowerCase()} medicines supplied by SSG Pharma.`,
+    imageSrc: marketingImages.catalog,
+    imageAlt: `${category.name} medicines catalog`,
+  };
+}
+
 async function getDivisionPageData(paramsPromise: Props["params"]) {
   try {
     const { slug } = await paramsPromise;
-    const division = getProductDivision(slug);
+    const division = await getDivisionConfig(slug);
     if (!division) {
       return null;
     }
@@ -53,7 +90,7 @@ async function getDivisionPageData(paramsPromise: Props["params"]) {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   try {
     const { slug } = await params;
-    const d = getProductDivision(slug);
+    const d = await getDivisionConfig(slug);
     if (!d) return {};
     const base = getSiteUrl();
     const url = `${base}/divisions/${slug}`;
