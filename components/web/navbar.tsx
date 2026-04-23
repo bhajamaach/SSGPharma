@@ -1,28 +1,15 @@
-"use client";
-
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
-import { ChevronDown, Menu, X } from "lucide-react";
+import { ChevronDown, Menu } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { productDivisions, serviceLines } from "@/lib/divisions";
 import { cn } from "@/lib/utils";
 
 export function Navbar() {
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [productsOpen, setProductsOpen] = useState(false);
-  const [servicesOpen, setServicesOpen] = useState(false);
-
-  function closeMobileMenu() {
-    setMobileOpen(false);
-    setProductsOpen(false);
-    setServicesOpen(false);
-  }
-
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/90 backdrop-blur-lg supports-[backdrop-filter]:bg-background/75">
       <nav className="mx-auto flex w-full max-w-[1400px] items-center justify-between gap-4 px-4 py-3 md:px-6 lg:px-8">
-        <Link href="/" className="group flex shrink-0 items-center" onClick={closeMobileMenu}>
+        <Link href="/" className="group flex shrink-0 items-center">
           <Image
             src="/tlogo.png"
             alt="SSG Pharma Logo"
@@ -116,113 +103,90 @@ export function Navbar() {
           <Link className={cn(buttonVariants({ size: "sm" }), "hidden sm:inline-flex")} href="/contact-us">
             Contact
           </Link>
-          <button
-            type="button"
-            onClick={() => setMobileOpen((current) => !current)}
-            className="inline-flex size-10 items-center justify-center rounded-full border border-border bg-background text-foreground shadow-sm transition hover:border-primary/40 hover:text-primary"
-            aria-label={mobileOpen ? "Close navigation menu" : "Open navigation menu"}
-            aria-expanded={mobileOpen}
-          >
-            {mobileOpen ? <X className="size-5" /> : <Menu className="size-5" />}
-          </button>
+          <details className="group/mobile relative">
+            <summary className="inline-flex size-10 list-none items-center justify-center rounded-full border border-border bg-background text-foreground shadow-sm transition hover:border-primary/40 hover:text-primary [&::-webkit-details-marker]:hidden">
+              <Menu className="size-5" />
+            </summary>
+
+            <div className="absolute right-0 top-[calc(100%+0.75rem)] w-[min(24rem,calc(100vw-2rem))] overflow-hidden rounded-3xl border border-border/70 bg-background/98 shadow-2xl">
+              <div className="space-y-3 px-4 pb-5 pt-4">
+                <div className="grid gap-2">
+                  {[
+                    { href: "/", label: "Home" },
+                    { href: "/about-us", label: "About" },
+                    { href: "/molecules", label: "Molecules" },
+                    { href: "/patient-assistance-programs", label: "Assistance" },
+                    { href: "/contact-us", label: "Contact" },
+                    { href: "/get-a-quote", label: "Get a quote" },
+                  ].map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className="rounded-2xl border border-border/70 bg-card/70 px-4 py-3 text-sm font-medium text-foreground transition hover:border-primary/30 hover:bg-primary/5"
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
+
+                <details className="overflow-hidden rounded-2xl border border-border/70 bg-card/70">
+                  <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-left text-sm font-medium text-foreground [&::-webkit-details-marker]:hidden">
+                    <span>Products</span>
+                    <ChevronDown className="size-4 transition-transform group-open:rotate-180" />
+                  </summary>
+                  <div className="border-t border-border/60 px-2 py-2">
+                    <Link
+                      href="/products"
+                      className="block rounded-xl px-3 py-2.5 text-sm font-medium text-primary transition hover:bg-primary/5"
+                    >
+                      View full catalog
+                    </Link>
+                    <div className="mt-1 grid gap-1">
+                      {productDivisions.map((division) => (
+                        <Link
+                          key={division.slug}
+                          href={`/divisions/${division.slug}`}
+                          className="rounded-xl px-3 py-2.5 text-sm text-foreground transition hover:bg-muted"
+                        >
+                          <span className="block font-medium">{division.title}</span>
+                          <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">{division.blurb}</span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                </details>
+
+                <details className="overflow-hidden rounded-2xl border border-border/70 bg-card/70">
+                  <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-left text-sm font-medium text-foreground [&::-webkit-details-marker]:hidden">
+                    <span>Services</span>
+                    <ChevronDown className="size-4 transition-transform group-open:rotate-180" />
+                  </summary>
+                  <div className="border-t border-border/60 px-2 py-2">
+                    <Link
+                      href="/services"
+                      className="block rounded-xl px-3 py-2.5 text-sm font-medium text-primary transition hover:bg-primary/5"
+                    >
+                      Services overview
+                    </Link>
+                    <div className="mt-1 grid gap-1">
+                      {serviceLines.map((service) => (
+                        <Link
+                          key={service.slug}
+                          href={service.href}
+                          className="rounded-xl px-3 py-2.5 text-sm text-foreground transition hover:bg-muted"
+                        >
+                          <span className="block font-medium">{service.title}</span>
+                          <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">{service.blurb}</span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                </details>
+              </div>
+            </div>
+          </details>
         </div>
       </nav>
-
-      {mobileOpen ? (
-        <div className="border-t border-border/70 bg-background/98 px-4 pb-5 pt-3 shadow-lg lg:hidden">
-          <div className="mx-auto max-w-[1400px] space-y-3">
-            <div className="grid gap-2">
-              {[
-                { href: "/", label: "Home" },
-                { href: "/about-us", label: "About" },
-                { href: "/molecules", label: "Molecules" },
-                { href: "/patient-assistance-programs", label: "Assistance" },
-                { href: "/contact-us", label: "Contact" },
-                { href: "/get-a-quote", label: "Get a quote" },
-              ].map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={closeMobileMenu}
-                  className="rounded-2xl border border-border/70 bg-card/70 px-4 py-3 text-sm font-medium text-foreground transition hover:border-primary/30 hover:bg-primary/5"
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </div>
-
-            <div className="overflow-hidden rounded-2xl border border-border/70 bg-card/70">
-              <button
-                type="button"
-                onClick={() => setProductsOpen((current) => !current)}
-                className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-medium text-foreground"
-              >
-                <span>Products</span>
-                <ChevronDown className={cn("size-4 transition-transform", productsOpen ? "rotate-180" : "")} />
-              </button>
-              {productsOpen ? (
-                <div className="border-t border-border/60 px-2 py-2">
-                  <Link
-                    href="/products"
-                    onClick={closeMobileMenu}
-                    className="block rounded-xl px-3 py-2.5 text-sm font-medium text-primary transition hover:bg-primary/5"
-                  >
-                    View full catalog
-                  </Link>
-                  <div className="mt-1 grid gap-1">
-                    {productDivisions.map((division) => (
-                      <Link
-                        key={division.slug}
-                        href={`/divisions/${division.slug}`}
-                        onClick={closeMobileMenu}
-                        className="rounded-xl px-3 py-2.5 text-sm text-foreground transition hover:bg-muted"
-                      >
-                        <span className="block font-medium">{division.title}</span>
-                        <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">{division.blurb}</span>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-            </div>
-
-            <div className="overflow-hidden rounded-2xl border border-border/70 bg-card/70">
-              <button
-                type="button"
-                onClick={() => setServicesOpen((current) => !current)}
-                className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-medium text-foreground"
-              >
-                <span>Services</span>
-                <ChevronDown className={cn("size-4 transition-transform", servicesOpen ? "rotate-180" : "")} />
-              </button>
-              {servicesOpen ? (
-                <div className="border-t border-border/60 px-2 py-2">
-                  <Link
-                    href="/services"
-                    onClick={closeMobileMenu}
-                    className="block rounded-xl px-3 py-2.5 text-sm font-medium text-primary transition hover:bg-primary/5"
-                  >
-                    Services overview
-                  </Link>
-                  <div className="mt-1 grid gap-1">
-                    {serviceLines.map((service) => (
-                      <Link
-                        key={service.slug}
-                        href={service.href}
-                        onClick={closeMobileMenu}
-                        className="rounded-xl px-3 py-2.5 text-sm text-foreground transition hover:bg-muted"
-                      >
-                        <span className="block font-medium">{service.title}</span>
-                        <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">{service.blurb}</span>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-            </div>
-          </div>
-        </div>
-      ) : null}
     </header>
   );
 }
