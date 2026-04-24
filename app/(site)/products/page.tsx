@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { connection } from "next/server";
 import { FadeIn } from "@/components/motion/fade-in";
 import { ProductsContent } from "@/components/marketing/products-content";
 import { getProductDivision, productDivisions } from "@/lib/divisions";
@@ -20,30 +21,32 @@ async function getProductsPageData(searchParamsPromise: Props["searchParams"]) {
     const { division: divisionSlug } = await searchParamsPromise;
     const division = divisionSlug ? getProductDivision(divisionSlug) : undefined;
 
-    const items = await prisma.product.findMany({
-      where: division ? { category: { is: { slug: division.slug } } } : undefined,
-      orderBy: [{ isActive: "desc" }, { name: "asc" }],
-      select: {
-        id: true,
-        slug: true,
-        name: true,
-        salts: true,
-        manufacturer: true,
-        description: true,
-        imageUrl1: true,
-        imageUrl2: true,
-        imageUrl3: true,
-        isActive: true,
-        pricePaise: true,
-        category: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
+    const items = await prisma.product
+      .findMany({
+        where: division ? { category: { is: { slug: division.slug } } } : undefined,
+        orderBy: [{ isActive: "desc" }, { name: "asc" }],
+        select: {
+          id: true,
+          slug: true,
+          name: true,
+          salts: true,
+          manufacturer: true,
+          description: true,
+          imageUrl1: true,
+          imageUrl2: true,
+          imageUrl3: true,
+          isActive: true,
+          pricePaise: true,
+          category: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
           },
         },
-      },
-    });
+      })
+      .catch(() => []);
 
     return { division, items };
   } catch {
@@ -79,6 +82,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 }
 
 export default async function ProductsPage({ searchParams }: Props) {
+  await connection();
   const data = await getProductsPageData(searchParams);
   if (!data) {
     return (

@@ -1,11 +1,19 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { connection } from "next/server";
 import { FadeIn } from "@/components/motion/fade-in";
 import { ManagedImage } from "@/components/web/managed-image";
 import { ContentPage } from "@/components/web/content-page";
 import { ContentSection } from "@/components/web/content-section";
 import { buttonVariants } from "@/components/ui/button";
-import { formatBusinessDays, formatBusinessHours, formatMailtoHref, formatPhoneHref, getContactConfig } from "@/lib/contact-config";
+import {
+  defaultPublicContactConfig,
+  formatBusinessDays,
+  formatBusinessHours,
+  formatMailtoHref,
+  formatPhoneHref,
+  getContactConfig,
+} from "@/lib/contact-config";
 import { marketingImages } from "@/lib/marketing-images";
 import { getSiteUrl } from "@/lib/site-url";
 import { cn } from "@/lib/utils";
@@ -22,56 +30,42 @@ export const metadata: Metadata = {
 };
 
 async function getContactPageData() {
-  try {
-    const contactConfig = await getContactConfig();
-    const phoneLines = contactConfig.phones;
-    const generalEmails = contactConfig.emails;
-    const whatsappPhone = contactConfig.phones.find((phone) => phone.purpose === "procurement" || phone.purpose === "sales") ?? contactConfig.phones[0];
-    const address = [contactConfig.officeAddress, contactConfig.officeCity, contactConfig.officeState, contactConfig.officeZipCode].filter(Boolean).join(", ");
+  const contactConfig = await getContactConfig().catch(() => defaultPublicContactConfig);
+  const phoneLines = contactConfig.phones;
+  const generalEmails = contactConfig.emails;
+  const whatsappPhone = contactConfig.phones.find((phone) => phone.purpose === "procurement" || phone.purpose === "sales") ?? contactConfig.phones[0];
+  const address = [contactConfig.officeAddress, contactConfig.officeCity, contactConfig.officeState, contactConfig.officeZipCode].filter(Boolean).join(", ");
 
-    const channels = [
-      {
-        title: "Phone numbers",
-        body: "All active contact lines configured in admin, including procurement, sales, and escalation.",
-        lines: phoneLines.map((phone) => ({
-          label: phone.description ? `${phone.description}: ${phone.value}` : phone.value,
-          href: formatPhoneHref(phone.value),
-        })),
-      },
-      {
-        title: "Email",
-        body: "Best for line-item enquiries, GST details, and formal quote requests.",
-        lines: generalEmails.map((email) => ({
-          label: email.value,
-          href: formatMailtoHref(email.value),
-        })),
-      },
-      {
-        title: "WhatsApp business",
-        body: "Use WhatsApp for quick stock checks, availability updates, and quote follow-up.",
-        lines: whatsappPhone ? [{ label: whatsappPhone.value, href: formatPhoneHref(whatsappPhone.value) }] : [],
-      },
-    ];
+  const channels = [
+    {
+      title: "Phone numbers",
+      body: "All active contact lines configured in admin, including procurement, sales, and escalation.",
+      lines: phoneLines.map((phone) => ({
+        label: phone.description ? `${phone.description}: ${phone.value}` : phone.value,
+        href: formatPhoneHref(phone.value),
+      })),
+    },
+    {
+      title: "Email",
+      body: "Best for line-item enquiries, GST details, and formal quote requests.",
+      lines: generalEmails.map((email) => ({
+        label: email.value,
+        href: formatMailtoHref(email.value),
+      })),
+    },
+    {
+      title: "WhatsApp business",
+      body: "Use WhatsApp for quick stock checks, availability updates, and quote follow-up.",
+      lines: whatsappPhone ? [{ label: whatsappPhone.value, href: formatPhoneHref(whatsappPhone.value) }] : [],
+    },
+  ];
 
-    return { contactConfig, channels, address };
-  } catch {
-    return null;
-  }
+  return { contactConfig, channels, address };
 }
 
 export default async function ContactPage() {
+  await connection();
   const data = await getContactPageData();
-  if (!data) {
-    return (
-      <ContentPage width="full" variant="frame">
-        <ContentSection>
-          <h1 className="font-[family-name:var(--font-display)] text-4xl tracking-tight text-foreground md:text-5xl">Contact</h1>
-          <p className="mt-4 text-muted-foreground">Contact details are temporarily unavailable. Please try again shortly.</p>
-        </ContentSection>
-      </ContentPage>
-    );
-  }
-
   const { contactConfig, channels, address } = data;
 
   return (

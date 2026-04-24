@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { connection } from "next/server";
 import { FadeIn } from "@/components/motion/fade-in";
 import { QuoteForm } from "@/components/marketing/quote-form";
 import { ContentPage } from "@/components/web/content-page";
 import { ContentSection } from "@/components/web/content-section";
 import { buttonVariants } from "@/components/ui/button";
-import { getContactConfig } from "@/lib/contact-config";
+import { defaultPublicContactConfig, getContactConfig } from "@/lib/contact-config";
 import { marketingImages } from "@/lib/marketing-images";
 import { getSiteUrl } from "@/lib/site-url";
 import { cn } from "@/lib/utils";
@@ -37,38 +38,22 @@ const steps = [
 ];
 
 async function getQuotePageData() {
-  try {
-    const contactConfig = await getContactConfig();
-    const recipientEmail =
-      contactConfig.emails.find((email) => email.type === "inquiry_recipient")?.value ??
-      contactConfig.emails[0]?.value ??
-      "SSGPHARMAONLINE@GMAIL.COM";
-    const priorityPhone =
-      contactConfig.phones.find((phone) => phone.purpose === "procurement")?.value ??
-      contactConfig.phones[0]?.value ??
-      "+91 93554 74600";
+  const contactConfig = await getContactConfig().catch(() => defaultPublicContactConfig);
+  const recipientEmail =
+    contactConfig.emails.find((email) => email.type === "inquiry_recipient")?.value ??
+    contactConfig.emails[0]?.value ??
+    "SSGPHARMAONLINE@GMAIL.COM";
+  const priorityPhone =
+    contactConfig.phones.find((phone) => phone.purpose === "procurement")?.value ??
+    contactConfig.phones[0]?.value ??
+    "+91 93554 74600";
 
-    return { contactConfig, recipientEmail, priorityPhone };
-  } catch {
-    return null;
-  }
+  return { contactConfig, recipientEmail, priorityPhone };
 }
 
 export default async function QuotePage() {
+  await connection();
   const data = await getQuotePageData();
-  if (!data) {
-    return (
-      <ContentPage width="full" variant="frame">
-        <ContentSection>
-          <h1 className="font-[family-name:var(--font-display)] text-4xl tracking-tight text-foreground md:text-5xl">
-            Request a quote
-          </h1>
-          <p className="mt-4 text-muted-foreground">Quote details are temporarily unavailable. Please try again shortly.</p>
-        </ContentSection>
-      </ContentPage>
-    );
-  }
-
   const { contactConfig, recipientEmail, priorityPhone } = data;
 
   return (

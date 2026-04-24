@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { connection } from "next/server";
 import { FadeIn } from "@/components/motion/fade-in";
 import { ManagedImage } from "@/components/web/managed-image";
 import { ContentPage } from "@/components/web/content-page";
@@ -62,8 +63,8 @@ const faqs = [
 export const revalidate = 3600;
 
 async function getMoleculesPageData() {
-  try {
-    return await prisma.molecule.findMany({
+  return prisma.molecule
+    .findMany({
       where: { isPublished: true },
       orderBy: [{ updatedAt: "desc" }],
       take: 24,
@@ -75,24 +76,13 @@ async function getMoleculesPageData() {
         imageUrl: true,
         overview: true,
       },
-    });
-  } catch {
-    return null;
-  }
+    })
+    .catch(() => []);
 }
 
 export default async function MoleculesPage() {
+  await connection();
   const molecules = await getMoleculesPageData();
-  if (!molecules) {
-    return (
-      <ContentPage width="full" variant="frame">
-        <ContentSection>
-            <h1 className="font-[family-name:var(--font-display)] text-4xl tracking-tight text-foreground md:text-5xl">Molecules</h1>
-          <p className="mt-4 text-muted-foreground">Molecule profiles are temporarily unavailable. Please try again shortly.</p>
-        </ContentSection>
-      </ContentPage>
-    );
-  }
 
   const faqJsonLd = {
     "@context": "https://schema.org",
