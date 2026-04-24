@@ -53,7 +53,6 @@ Attach a persistent disk:
 Set these environment variables:
 
 ```env
-NODE_ENV=production
 DATABASE_URL=file:/opt/render/project/src/data/prod.db
 NEXT_PUBLIC_SITE_URL=https://yourdomain.com
 ADMIN_SESSION_SECRET=<random-secret>

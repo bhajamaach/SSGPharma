@@ -59,11 +59,15 @@ function MoleculeSection({ title, content }: { title: string; content?: string |
 export const revalidate = 3600;
 
 export async function generateStaticParams() {
-  const molecules = await prisma.molecule.findMany({
-    where: { isPublished: true },
-    select: { slug: true },
-  });
-  return molecules.map((molecule) => ({ slug: molecule.slug }));
+  try {
+    const molecules = await prisma.molecule.findMany({
+      where: { isPublished: true },
+      select: { slug: true },
+    });
+    return molecules.map((molecule) => ({ slug: molecule.slug }));
+  } catch {
+    return [];
+  }
 }
 
 export const dynamicParams = true;

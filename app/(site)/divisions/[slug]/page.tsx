@@ -15,12 +15,16 @@ type Props = { params: Promise<{ slug: string }> };
 export const revalidate = 3600;
 
 export async function generateStaticParams() {
-  const categories = await prisma.category.findMany({
-    where: { isActive: true },
-    select: { slug: true },
-  });
-  const slugs = new Set([...productDivisions.map((division) => division.slug), ...categories.map((category) => category.slug)]);
-  return Array.from(slugs).map((slug) => ({ slug }));
+  try {
+    const categories = await prisma.category.findMany({
+      where: { isActive: true },
+      select: { slug: true },
+    });
+    const slugs = new Set([...productDivisions.map((division) => division.slug), ...categories.map((category) => category.slug)]);
+    return Array.from(slugs).map((slug) => ({ slug }));
+  } catch {
+    return [];
+  }
 }
 
 export const dynamicParams = true;

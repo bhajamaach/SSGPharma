@@ -13,8 +13,6 @@ services:
       mountPath: /opt/render/project/src/data
       sizeGB: 5
     envVars:
-      - key: NODE_ENV
-        value: production
       - key: DATABASE_URL
         value: file:/opt/render/project/src/data/prod.db
       - key: NEXT_PUBLIC_SITE_URL
