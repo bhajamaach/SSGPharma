@@ -10,9 +10,9 @@ export function SiteFooter() {
 
   return (
     <footer className="mt-auto w-full border-t-2 border-border bg-muted/40">
-      <div className="mx-auto grid max-w-[1400px] gap-12 px-4 py-14 md:grid-cols-[1.2fr_1fr_1fr_1.2fr] md:px-8">
+      <div className="mx-auto grid max-w-350 gap-12 px-4 py-14 md:grid-cols-[1.2fr_1fr_1fr_1.2fr] md:px-8">
         <div className="space-y-4">
-          <p className="font-[family-name:var(--font-display)] text-xl text-foreground">{contactConfig.companyName}</p>
+          <p className="font-(family-name:--font-display) text-xl text-foreground">{contactConfig.companyName}</p>
           <p className="text-sm leading-relaxed text-foreground/78">
             {contactConfig.businessType}. Wholesale and specialty medicines with careful handling and responsive support.
           </p>
@@ -84,13 +84,13 @@ export function SiteFooter() {
       </div>
 
       <div className="border-t border-border/60 py-6">
-        <div className="mx-auto flex max-w-[1400px] flex-col items-center justify-between gap-3 px-4 text-center text-xs text-foreground/72 md:flex-row md:px-8 md:text-left">
+        <div className="mx-auto flex max-w-350 flex-col items-center justify-between gap-3 px-4 text-center text-xs text-foreground/72 md:flex-row md:px-8 md:text-left">
           <p>© 2026 {contactConfig.companyName}. All rights reserved.</p>
-          <p className="inline-flex items-center gap-2.5 rounded-full border border-primary/20 bg-gradient-to-r from-[#f7fbfb] via-white to-primary/10 px-4 py-2 text-[11px] tracking-[0.18em] text-foreground/88 shadow-sm ring-1 ring-primary/8 transition-[transform,box-shadow,border-color] duration-300 hover:-translate-y-px hover:border-primary/35 hover:shadow-md">
+          <p className="inline-flex items-center gap-2.5 rounded-full border border-primary/30 bg-primary/5 px-4 py-2 text-[11px] tracking-[0.18em] text-foreground/88 shadow-sm ring-1 ring-primary/10 transition-[transform,box-shadow,border-color] duration-300 hover:-translate-y-px hover:border-primary/40 hover:shadow-md">
             <span className="inline-flex size-2 rounded-full bg-primary shadow-[0_0_0_4px_rgba(13,115,119,0.08)]" aria-hidden />
             <span className="font-medium text-primary">Made with love</span>
             <span className="text-foreground/50">by</span>
-            <span className="rounded-full bg-foreground/[0.04] px-2 py-0.5 font-semibold text-foreground">ByteTwo Studios</span>
+            <span className="rounded-full bg-foreground/8 px-2 py-0.5 font-semibold text-foreground">ByteTwo Studios</span>
           </p>
         </div>
       </div>

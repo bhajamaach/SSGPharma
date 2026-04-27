@@ -3,6 +3,7 @@ import Link from "next/link";
 import { cache } from "react";
 import { notFound } from "next/navigation";
 import { Breadcrumbs } from "@/components/web/breadcrumbs";
+import { ImageCarousel } from "@/components/web/image-carousel";
 import { ManagedImage } from "@/components/web/managed-image";
 import {
   normalizeMatchToken,
@@ -96,7 +97,7 @@ function ProductShelfCard({
       <div className="space-y-3 p-5">
         {eyebrow ? <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">{eyebrow}</p> : null}
         <div>
-          <h3 className="font-[family-name:var(--font-display)] text-xl text-foreground">{product.name}</h3>
+          <h3 className="font-(family-name:--font-display) text-xl text-foreground">{product.name}</h3>
           <p className="mt-1 text-sm text-muted-foreground">
             {[product.manufacturer, product.dosage].filter(Boolean).join(" · ") || product.category?.name || "Pharmaceutical product"}
           </p>
@@ -114,17 +115,6 @@ function ProductShelfCard({
 }
 
 export const revalidate = 3600;
-
-export async function generateStaticParams() {
-  try {
-    const items = await prisma.product.findMany({ select: { slug: true } });
-    return items.map((item) => ({ slug: item.slug }));
-  } catch {
-    return [];
-  }
-}
-
-export const dynamicParams = true;
 
 async function loadProductPageData(paramsPromise: Props["params"]) {
   try {
@@ -223,7 +213,6 @@ export default async function ProductDetailPage({ params }: Props) {
   const faqs = parseFaqText(product.faqs);
   const faqSchemaItems = faqs.filter((faq) => faq.answer);
   const productTokens = getProductMatchTokens(product);
-  const galleryImages = (imageUrls.length > 1 ? imageUrls.slice(1) : [marketingImages.packaging, marketingImages.catalog]).slice(0, 2);
 
   const alternatives = otherProducts
     .filter((candidate) => {
@@ -332,13 +321,27 @@ export default async function ProductDetailPage({ params }: Props) {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
-      {faqJsonLd ? <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} /> : null}
+      <script
+        id={`product-json-ld-${product.slug}`}
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd).replace(/</g, "\\u003c") }}
+      />
+      <script
+        id={`product-breadcrumb-json-ld-${product.slug}`}
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd).replace(/</g, "\\u003c") }}
+      />
+      {faqJsonLd ? (
+        <script
+          id={`product-faq-json-ld-${product.slug}`}
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd).replace(/</g, "\\u003c") }}
+        />
+      ) : null}
 
       <article className="bg-background">
-        <section className="border-b border-border/60 bg-[radial-gradient(circle_at_top_left,rgba(13,115,119,0.12),transparent_40%),linear-gradient(180deg,rgba(248,250,252,0.96),rgba(255,255,255,0.92))]">
-          <div className="mx-auto grid max-w-[1400px] gap-8 px-4 py-8 md:px-6 lg:grid-cols-[1.06fr_0.94fr] lg:px-8 lg:py-12">
+        <section className="border-b border-border/60 bg-[radial-gradient(circle_at_top_left,color-mix(in_oklch,var(--primary)_22%,transparent),transparent_40%),linear-gradient(180deg,color-mix(in_oklch,var(--background)_86%,white),var(--background))] dark:bg-[radial-gradient(circle_at_top_left,color-mix(in_oklch,var(--primary)_28%,transparent),transparent_42%),linear-gradient(180deg,color-mix(in_oklch,var(--background)_92%,black),var(--background))]">
+          <div className="mx-auto grid max-w-350 gap-8 px-4 py-8 md:px-6 lg:grid-cols-[1.06fr_0.94fr] lg:px-8 lg:py-12">
             <div className="space-y-6">
               <Breadcrumbs
                 crumbs={[
@@ -354,53 +357,39 @@ export default async function ProductDetailPage({ params }: Props) {
                   <span
                     className={cn(
                       "rounded-full px-3 py-1 font-medium",
-                      product.isActive ? "bg-emerald-100 text-emerald-700" : "bg-muted text-muted-foreground",
+                      product.isActive
+                        ? "bg-emerald-500/15 text-emerald-700 dark:bg-emerald-400/20 dark:text-emerald-200"
+                        : "bg-muted text-muted-foreground",
                     )}
                   >
                     {product.isActive ? "Available" : "Currently unavailable"}
                   </span>
                   {product.category?.name ? <span className="rounded-full bg-primary/10 px-3 py-1 font-medium text-primary">{product.category.name}</span> : null}
                 </div>
-                <h1 className="font-[family-name:var(--font-display)] text-4xl tracking-tight text-foreground md:text-5xl lg:text-6xl">
+                <h1 className="font-(family-name:--font-display) text-4xl tracking-tight text-foreground md:text-5xl lg:text-6xl">
                   {product.name}
                 </h1>
-                <div className="space-y-1 text-sm text-muted-foreground md:text-base">
+                <div className="space-y-1 text-sm text-foreground/80 md:text-base">
                   {product.manufacturer ? <p>By {product.manufacturer}</p> : null}
                   {product.dosage ? <p>{product.dosage}</p> : null}
                 </div>
-                <p className="max-w-3xl text-base leading-relaxed text-muted-foreground md:text-lg">
-                  {product.description ||
-                    `${product.name}${product.salts ? ` contains ${product.salts}` : ""}${
-                      product.manufacturer ? ` by ${product.manufacturer}` : ""
-                    } and is available for institutional procurement and quote requests through SSG Pharma.`}
-                </p>
-
-                <div className="space-y-4 md:hidden">
-                  <div className="relative min-h-[20rem] overflow-hidden rounded-[2rem] border border-border/70 bg-muted shadow-sm sm:min-h-[24rem]">
-                    <ManagedImage
-                      src={primaryImage}
-                      alt={`${product.name} main product image`}
-                      fill
-                      priority
-                      sizes="100vw"
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    {galleryImages.map((imageSrc, index) => (
-                      <div key={`${imageSrc}-${index}`} className="relative min-h-40 overflow-hidden rounded-[1.5rem] border border-border/70 bg-muted shadow-sm">
-                        <ManagedImage
-                          src={imageSrc}
-                          alt={`${product.name} gallery image ${index + 2}`}
-                          fill
-                          sizes="50vw"
-                          className="object-cover"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
               </div>
+
+              {/* IMAGE CAROUSEL - MOBILE ONLY (below manufacturer info, above description) */}
+              <div className="lg:hidden">
+                <ImageCarousel
+                  images={imageUrls.length > 0 ? imageUrls : [marketingImages.catalog]}
+                  alt={product.name}
+                  sizes="(max-width: 1024px) 100vw, 42vw"
+                />
+              </div>
+
+              <p className="max-w-3xl text-base leading-relaxed text-foreground/90 md:text-lg">
+                {product.description ||
+                  `${product.name}${product.salts ? ` contains ${product.salts}` : ""}${
+                    product.manufacturer ? ` by ${product.manufacturer}` : ""
+                  } and is available for institutional procurement and quote requests through SSG Pharma.`}
+              </p>
 
               <div className="flex flex-wrap items-end gap-5">
                 <div>
@@ -410,7 +399,9 @@ export default async function ProductDetailPage({ params }: Props) {
                 {product.mrpPaise ? (
                   <div className="pb-1">
                     <p className="text-sm text-muted-foreground line-through">{formatInrFromPaise(product.mrpPaise)}</p>
-                    {savingsPercent ? <p className="text-sm font-medium text-emerald-700">Save {savingsPercent}% off MRP</p> : null}
+                    {savingsPercent ? (
+                      <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">Save {savingsPercent}% off MRP</p>
+                    ) : null}
                   </div>
                 ) : null}
               </div>
@@ -446,39 +437,22 @@ export default async function ProductDetailPage({ params }: Props) {
               </div>
             </div>
 
-            <div className="hidden gap-4 md:grid lg:grid-cols-[1fr_136px]">
-              <div className="relative min-h-[20rem] overflow-hidden rounded-[2rem] border border-border/70 bg-muted shadow-sm sm:min-h-[24rem]">
-                <ManagedImage
-                  src={primaryImage}
-                  alt={`${product.name} main product image`}
-                  fill
-                  priority
-                  sizes="(max-width: 1024px) 100vw, 42vw"
-                  className="object-cover"
-                />
-              </div>
-              <div className="grid gap-4">
-                {galleryImages.map((imageSrc, index) => (
-                  <div key={`${imageSrc}-${index}`} className="relative min-h-40 overflow-hidden rounded-[1.5rem] border border-border/70 bg-muted shadow-sm">
-                    <ManagedImage
-                      src={imageSrc}
-                      alt={`${product.name} gallery image ${index + 2}`}
-                      fill
-                      sizes="136px"
-                      className="object-cover"
-                    />
-                  </div>
-                ))}
-              </div>
+            {/* IMAGE CAROUSEL - DESKTOP ONLY (right column) */}
+            <div className="hidden lg:block">
+              <ImageCarousel
+                images={imageUrls.length > 0 ? imageUrls : [marketingImages.catalog]}
+                alt={product.name}
+                sizes="(max-width: 1024px) 100vw, 42vw"
+              />
             </div>
           </div>
         </section>
 
-        <section className="mx-auto max-w-[1400px] space-y-8 px-4 py-10 md:px-6 lg:px-8 lg:py-14">
+        <section className="mx-auto max-w-350 space-y-8 px-4 py-10 md:px-6 lg:px-8 lg:py-14">
           <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
             <div className="rounded-[2rem] border border-border/70 bg-card p-6 shadow-sm md:p-8">
-              <h2 className="font-[family-name:var(--font-display)] text-3xl text-foreground">Product Description</h2>
-              <div className="mt-5 space-y-4 text-sm leading-7 text-muted-foreground md:text-base">
+              <h2 className="font-(family-name:--font-display) text-3xl text-foreground">Product Description</h2>
+              <div className="mt-5 space-y-4 text-sm leading-7 text-foreground/85 md:text-base">
                 {toParagraphs(product.description).length > 0 ? (
                   toParagraphs(product.description).map((paragraph) => <p key={paragraph}>{paragraph}</p>)
                 ) : (
@@ -492,7 +466,7 @@ export default async function ProductDetailPage({ params }: Props) {
             </div>
 
             <div className="rounded-[2rem] border border-border/70 bg-card p-6 shadow-sm md:p-8">
-              <h2 className="font-[family-name:var(--font-display)] text-3xl text-foreground">Product Info</h2>
+              <h2 className="font-(family-name:--font-display) text-3xl text-foreground">Product Info</h2>
               <dl className="mt-5 space-y-4 text-sm">
                 {[
                   ["Price", formatInrFromPaise(product.pricePaise)],
@@ -503,9 +477,9 @@ export default async function ProductDetailPage({ params }: Props) {
                   ["Active Ingredient", product.salts || "Not listed"],
                   ["Category", product.category?.name || "Not listed"],
                 ].map(([label, value]) => (
-                  <div key={label} className="flex flex-col gap-1 border-b border-border/60 pb-3 last:border-b-0 last:pb-0 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                  <div key={label} className="flex items-start justify-between gap-4 border-b border-border/60 pb-3 last:border-b-0 last:pb-0">
                     <dt className="font-medium text-foreground">{label}</dt>
-                    <dd className="leading-6 text-muted-foreground sm:max-w-[60%] sm:text-right">{value}</dd>
+                    <dd className="max-w-[60%] text-right leading-6 text-muted-foreground">{value}</dd>
                   </div>
                 ))}
               </dl>
@@ -514,9 +488,9 @@ export default async function ProductDetailPage({ params }: Props) {
 
           <div className="grid gap-8 lg:grid-cols-3">
             <section className="rounded-[2rem] border border-border/70 bg-card p-6 shadow-sm">
-              <h2 className="font-[family-name:var(--font-display)] text-2xl text-foreground">Key Benefits</h2>
+              <h2 className="font-(family-name:--font-display) text-2xl text-foreground">Key Benefits</h2>
               {keyBenefits.length > 0 ? (
-                <ul className="mt-5 space-y-3 text-sm leading-6 text-muted-foreground">
+                <ul className="mt-5 space-y-3 text-sm leading-6 text-foreground/85">
                   {keyBenefits.map((benefit) => (
                     <li key={benefit} className="flex gap-3">
                       <span className="mt-2 h-2 w-2 rounded-full bg-primary" />
@@ -525,13 +499,13 @@ export default async function ProductDetailPage({ params }: Props) {
                   ))}
                 </ul>
               ) : (
-                <p className="mt-5 text-sm leading-6 text-muted-foreground">Add key benefits in admin to surface the strongest selling points here.</p>
+                <p className="mt-5 text-sm leading-6 text-foreground/80">Add key benefits in admin to surface the strongest selling points here.</p>
               )}
             </section>
 
             <section className="rounded-[2rem] border border-border/70 bg-card p-6 shadow-sm">
-              <h2 className="font-[family-name:var(--font-display)] text-2xl text-foreground">Usage & Safety</h2>
-              <div className="mt-5 space-y-5 text-sm leading-6 text-muted-foreground">
+              <h2 className="font-(family-name:--font-display) text-2xl text-foreground">Usage & Safety</h2>
+              <div className="mt-5 space-y-5 text-sm leading-6 text-foreground/85">
                 {product.directionForUse ? (
                   <div>
                     <h3 className="font-medium text-foreground">Direction for Use</h3>
@@ -579,7 +553,7 @@ export default async function ProductDetailPage({ params }: Props) {
             </section>
 
             <section className="rounded-[2rem] border border-border/70 bg-card p-6 shadow-sm">
-              <h2 className="font-[family-name:var(--font-display)] text-2xl text-foreground">Why Choose {product.name}?</h2>
+              <h2 className="font-(family-name:--font-display) text-2xl text-foreground">Why Choose {product.name}?</h2>
               <div className="mt-5 grid gap-4 text-sm">
                 {[
                   {
@@ -601,7 +575,7 @@ export default async function ProductDetailPage({ params }: Props) {
                 ].map((item) => (
                   <div key={item.title} className="rounded-2xl bg-muted/40 p-4">
                     <h3 className="font-medium text-foreground">{item.title}</h3>
-                    <p className="mt-2 leading-6 text-muted-foreground">{item.text}</p>
+                    <p className="mt-2 leading-6 text-foreground/80">{item.text}</p>
                   </div>
                 ))}
               </div>
@@ -610,8 +584,8 @@ export default async function ProductDetailPage({ params }: Props) {
 
           {specialSchemes.length > 0 ? (
             <section className="rounded-[2rem] border border-border/70 bg-card p-6 shadow-sm md:p-8">
-              <h2 className="font-[family-name:var(--font-display)] text-2xl text-foreground">Special Benefit Schemes</h2>
-              <ul className="mt-5 space-y-3 text-sm leading-6 text-muted-foreground">
+              <h2 className="font-(family-name:--font-display) text-2xl text-foreground">Special Benefit Schemes</h2>
+              <ul className="mt-5 space-y-3 text-sm leading-6 text-foreground/85">
                 {specialSchemes.map((scheme) => (
                   <li key={scheme} className="flex gap-3">
                     <span className="mt-2 h-2 w-2 rounded-full bg-primary" />
@@ -624,12 +598,12 @@ export default async function ProductDetailPage({ params }: Props) {
 
           {faqs.length > 0 ? (
             <section className="rounded-[2rem] border border-border/70 bg-card p-6 shadow-sm md:p-8">
-              <h2 className="font-[family-name:var(--font-display)] text-3xl text-foreground">Frequently Asked Questions</h2>
+              <h2 className="font-(family-name:--font-display) text-3xl text-foreground">Frequently Asked Questions</h2>
               <div className="mt-6 space-y-4">
                 {faqs.map((faq) => (
                   <div key={faq.question} className="rounded-2xl border border-border/70 bg-background/70 p-5">
                     <h3 className="font-medium text-foreground">{faq.question}</h3>
-                    {faq.answer ? <p className="mt-2 text-sm leading-6 text-muted-foreground">{faq.answer}</p> : null}
+                    {faq.answer ? <p className="mt-2 text-sm leading-6 text-foreground/80">{faq.answer}</p> : null}
                   </div>
                 ))}
               </div>
@@ -639,7 +613,7 @@ export default async function ProductDetailPage({ params }: Props) {
           {alternatives.length > 0 ? (
             <section className="space-y-4">
               <div className="space-y-2">
-                <h2 className="font-[family-name:var(--font-display)] text-3xl text-foreground">Alternative Medicines with Same Salt</h2>
+                <h2 className="font-(family-name:--font-display) text-3xl text-foreground">Alternative Medicines with Same Salt</h2>
                 <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
                   These alternatives share the same active ingredient or linked molecule record. Please consult your healthcare provider before making any substitutions.
                 </p>
@@ -656,7 +630,7 @@ export default async function ProductDetailPage({ params }: Props) {
             <section className="space-y-4">
               <div className="flex flex-wrap items-end justify-between gap-4">
                 <div>
-                  <h2 className="font-[family-name:var(--font-display)] text-3xl text-foreground">
+                  <h2 className="font-(family-name:--font-display) text-3xl text-foreground">
                     Related {product.category?.name || "Category"} Products
                   </h2>
                   <p className="mt-2 text-sm text-muted-foreground">Explore other products from the same category.</p>
@@ -678,7 +652,7 @@ export default async function ProductDetailPage({ params }: Props) {
           {moreFromManufacturer.length > 0 ? (
             <section className="space-y-4">
               <div className="space-y-2">
-                <h2 className="font-[family-name:var(--font-display)] text-3xl text-foreground">More from {product.manufacturer}</h2>
+                <h2 className="font-(family-name:--font-display) text-3xl text-foreground">More from {product.manufacturer}</h2>
                 <p className="text-sm text-muted-foreground">Explore other products from the same trusted manufacturer.</p>
               </div>
               <div className="grid gap-6 lg:grid-cols-3">
@@ -689,9 +663,9 @@ export default async function ProductDetailPage({ params }: Props) {
             </section>
           ) : null}
 
-          <section className="rounded-[2rem] border border-border/70 bg-[linear-gradient(135deg,rgba(13,115,119,0.12),rgba(255,255,255,0.96))] p-6 shadow-sm md:p-8">
+          <section className="rounded-[2rem] border border-border/70 bg-[linear-gradient(135deg,color-mix(in_oklch,var(--primary)_20%,transparent),color-mix(in_oklch,var(--background)_88%,white))] p-6 shadow-sm dark:bg-[linear-gradient(135deg,color-mix(in_oklch,var(--primary)_30%,transparent),color-mix(in_oklch,var(--background)_90%,black))] md:p-8">
             <div className="max-w-3xl">
-              <h2 className="font-[family-name:var(--font-display)] text-3xl text-foreground">Ready to Order {product.name}?</h2>
+              <h2 className="font-(family-name:--font-display) text-3xl text-foreground">Ready to Order {product.name}?</h2>
               <p className="mt-3 text-sm leading-7 text-muted-foreground md:text-base">
                 Get competitive pricing, institutional support, and confirmed availability for {product.name}. Share quantity, location, and timeline and our team will respond with the right next step.
               </p>

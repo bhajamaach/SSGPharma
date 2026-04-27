@@ -1,20 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
-import { internalServerError, parseJsonBody } from "@/lib/api";
-import { requireAdminApi } from "@/lib/require-admin";
+import { revalidatePath } from "next/cache";
+import { requireAdminApi, requireAdminMutation } from "@/lib/require-admin";
+import { parseJsonBody } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
 import { updateMoleculeSchema } from "@/lib/validators/molecule";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
-export async function GET(
-  _req: NextRequest,
-  { params }: RouteContext
-): Promise<Response> {
-  try {
-    const denied = await requireAdminApi();
-    if (denied) return denied;
+function revalidateMoleculePaths(slug?: string) {
+  revalidatePath("/molecules");
+  if (slug) {
+    revalidatePath(`/molecules/${slug}`);
+  }
+}
 
-    const { id } = await params;
+export async function GET(
+  req: NextRequest,
+  { params }: RouteContext
+) {
+  const adminCheck = await requireAdminApi();
+  if (adminCheck instanceof NextResponse) return adminCheck;
+  const { id } = await params;
+  try {
     const molecule = await prisma.molecule.findUnique({
       where: { id },
     });
@@ -27,55 +34,94 @@ export async function GET(
     }
 
     return NextResponse.json(molecule);
-  } catch {
-    return internalServerError();
+  } catch (error) {
+    console.error("Error fetching molecule:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch molecule" },
+      { status: 500 }
+    );
   }
 }
 
 export async function PATCH(
   req: NextRequest,
   { params }: RouteContext
-): Promise<Response> {
-  const adminCheck = await requireAdminApi();
+) {
+  const adminCheck = await requireAdminMutation(req);
   if (adminCheck instanceof NextResponse) return adminCheck;
+  const { id } = await params;
 
   try {
-    const { id } = await params;
     const parsed = await parseJsonBody(req, updateMoleculeSchema);
-    if (!parsed.success) {
-      return parsed.response;
-    }
+    if (!parsed.success) return parsed.response;
     const validated = parsed.data;
+
+    const existing = await prisma.molecule.findUnique({
+      where: { id },
+      select: { slug: true },
+    });
+
+    if (!existing) {
+      return NextResponse.json(
+        { error: "Molecule not found" },
+        { status: 404 }
+      );
+    }
 
     const molecule = await prisma.molecule.update({
       where: { id },
       data: {
         ...validated,
-        imageUrl: validated.imageUrl || null,
+        imageUrl: validated.imageUrl ?? null,
       },
     });
 
+    revalidateMoleculePaths(existing.slug);
+    revalidateMoleculePaths(molecule.slug);
+
     return NextResponse.json(molecule);
-  } catch {
-    return internalServerError();
+  } catch (error) {
+    console.error("Error updating molecule:", error);
+    return NextResponse.json(
+      { error: "Failed to update molecule" },
+      { status: 500 }
+    );
   }
 }
 
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: RouteContext
-): Promise<Response> {
-  const adminCheck = await requireAdminApi();
+) {
+  const adminCheck = await requireAdminMutation(req);
   if (adminCheck instanceof NextResponse) return adminCheck;
+  const { id } = await params;
 
   try {
-    const { id } = await params;
+    const existing = await prisma.molecule.findUnique({
+      where: { id },
+      select: { slug: true },
+    });
+
+    if (!existing) {
+      return NextResponse.json(
+        { error: "Molecule not found" },
+        { status: 404 }
+      );
+    }
+
     await prisma.molecule.delete({
       where: { id },
     });
 
+    revalidateMoleculePaths(existing.slug);
+
     return NextResponse.json({ success: true });
-  } catch {
-    return internalServerError();
+  } catch (error) {
+    console.error("Error deleting molecule:", error);
+    return NextResponse.json(
+      { error: "Failed to delete molecule" },
+      { status: 500 }
+    );
   }
 }

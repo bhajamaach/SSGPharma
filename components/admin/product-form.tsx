@@ -6,12 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 
-type CategoryOption = {
-  id: string;
-  name: string;
-};
-
-type ProductPayload = {
+type ProductFormData = {
   name: string;
   slug: string;
   categoryId: string;
@@ -38,15 +33,22 @@ type ProductPayload = {
   imageUrl3: string;
 };
 
+type ProductImageKey = 'imageUrl1' | 'imageUrl2' | 'imageUrl3';
+
+type CategoryOption = {
+  id: string;
+  name: string;
+};
+
 interface ProductFormProps {
   productId?: string;
-  onSave: (data: ProductPayload) => Promise<void>;
+  onSave: (data: ProductFormData) => Promise<void>;
   onCancel: () => void;
 }
 
 export function ProductForm({ productId, onSave, onCancel }: ProductFormProps) {
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState<ProductPayload>({
+  const [formData, setFormData] = useState<ProductFormData>({
     name: '',
     slug: '',
     categoryId: '',
@@ -75,66 +77,44 @@ export function ProductForm({ productId, onSave, onCancel }: ProductFormProps) {
   const [categories, setCategories] = useState<CategoryOption[]>([]);
 
   useEffect(() => {
-    void (async () => {
+    const fetchCategories = async () => {
       try {
         const res = await fetch('/api/admin/categories');
-        if (res.ok) {
-          const data = (await res.json()) as CategoryOption[];
-          setCategories(data);
-        }
-      } catch {}
-    })();
+        if (res.ok) setCategories((await res.json()) as CategoryOption[]);
+      } catch (err) {
+        console.error('Failed to fetch categories:', err);
+      }
+    };
 
-    if (!productId) return;
+    const fetchProductData = async () => {
+      if (!productId) return;
 
-    void (async () => {
       try {
         const res = await fetch(`/api/admin/products/${productId}`);
-        if (!res.ok) return;
+        if (res.ok) {
+          const product = (await res.json()) as ProductFormData;
+          setFormData(product);
+        }
+      } catch (err) {
+        console.error('Failed to fetch product:', err);
+      }
+    };
 
-        const product = (await res.json()) as Partial<ProductPayload>;
-        setFormData((current) => ({
-          ...current,
-          ...product,
-          name: product.name ?? current.name,
-          slug: product.slug ?? current.slug,
-          categoryId: product.categoryId ?? "",
-          manufacturer: product.manufacturer ?? "",
-          isActive: product.isActive ?? current.isActive,
-          pricePaise: product.pricePaise ?? current.pricePaise,
-          mrpPaise: product.mrpPaise ?? current.mrpPaise,
-          dosage: product.dosage ?? "",
-          packSize: product.packSize ?? "",
-          salts: product.salts ?? "",
-          description: product.description ?? "",
-          keyBenefits: product.keyBenefits ?? "",
-          goodToKnow: product.goodToKnow ?? "",
-          dietType: product.dietType ?? "",
-          productForm: product.productForm ?? "",
-          allergiesInformation: product.allergiesInformation ?? "",
-          directionForUse: product.directionForUse ?? "",
-          safetyInformation: product.safetyInformation ?? "",
-          schema: product.schema ?? "",
-          specialBenefitSchemes: product.specialBenefitSchemes ?? "",
-          faqs: product.faqs ?? "",
-          imageUrl1: product.imageUrl1 ?? "",
-          imageUrl2: product.imageUrl2 ?? "",
-          imageUrl3: product.imageUrl3 ?? "",
-        }));
-      } catch {}
-    })();
+    void fetchCategories();
+    void fetchProductData();
   }, [productId]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-    const checked = e.target instanceof HTMLInputElement ? e.target.checked : false;
+    const target = e.currentTarget;
+    const { name } = target;
+    const nextValue = target instanceof HTMLInputElement && target.type === 'checkbox' ? target.checked : target.value;
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: nextValue,
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
@@ -294,36 +274,41 @@ export function ProductForm({ productId, onSave, onCancel }: ProductFormProps) {
       <fieldset className="border p-4 rounded-lg space-y-4">
         <legend className="font-bold">Images</legend>
         <p className="text-sm text-gray-600">Upload up to three images of the product</p>
-        {([
-          ["imageUrl1", "Image 1"],
-          ["imageUrl2", "Image 2"],
-          ["imageUrl3", "Image 3"],
-        ] as const).map(([field, label]) => (
-          <div key={field}>
-            <Label htmlFor={field}>{label}</Label>
-            {formData[field] && (
+        {[1, 2, 3].map((num) => (
+          <div key={num}>
+            {(() => {
+              const imageKey = `imageUrl${num}` as ProductImageKey;
+              const imageUrl = formData[imageKey];
+
+              return (
+                <>
+            <Label htmlFor={`imageUrl${num}`}>Image {num}</Label>
+            {imageUrl && (
               <div className="mb-2">
-                <p className="text-sm">Currently: <a href={formData[field]} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">View</a></p>
-                <Button type="button" variant="outline" size="sm" onClick={() => setFormData(prev => ({ ...prev, [field]: '' }))}>
+                <p className="text-sm">Currently: <a href={imageUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">View</a></p>
+                <Button variant="outline" size="sm" onClick={() => setFormData(prev => ({ ...prev, [imageKey]: '' }))}>
                   Clear
                 </Button>
               </div>
             )}
             <Input
-              id={field}
-              name={field}
+              id={`imageUrl${num}`}
+              name={`imageUrl${num}`}
               type="url"
-              value={formData[field]}
+              value={imageUrl}
               onChange={handleChange}
               placeholder="Image URL"
             />
+                </>
+              );
+            })()}
           </div>
         ))}
       </fieldset>
 
       {/* Timestamps */}
       <div className="border p-4 rounded-lg">
-        <p className="text-sm text-gray-600">Created at: {productId ? "Loaded from admin record" : "N/A"}</p>
+        <p className="text-sm text-gray-600">Created at: {productId ? new Date().toLocaleString() : 'N/A'}</p>
       </div>
 
       {/* Form Actions */}

@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 
-type MoleculePayload = {
+type MoleculeFormData = {
   name: string;
   slug: string;
   synonyms: string;
@@ -26,13 +26,13 @@ type MoleculePayload = {
 
 interface MoleculeFormProps {
   moleculeId?: string;
-  onSave: (data: MoleculePayload) => Promise<void>;
+  onSave: (data: MoleculeFormData) => Promise<void>;
   onCancel: () => void;
 }
 
 export function MoleculeForm({ moleculeId, onSave, onCancel }: MoleculeFormProps) {
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState<MoleculePayload>({
+  const [formData, setFormData] = useState<MoleculeFormData>({
     name: '',
     slug: '',
     synonyms: '',
@@ -51,47 +51,34 @@ export function MoleculeForm({ moleculeId, onSave, onCancel }: MoleculeFormProps
   });
 
   useEffect(() => {
-    if (!moleculeId) return;
+    const fetchMoleculeData = async () => {
+      if (!moleculeId) return;
 
-    void (async () => {
       try {
         const res = await fetch(`/api/admin/molecules/${moleculeId}`);
-        if (!res.ok) return;
+        if (res.ok) {
+          const molecule = (await res.json()) as MoleculeFormData;
+          setFormData(molecule);
+        }
+      } catch (err) {
+        console.error('Failed to fetch molecule:', err);
+      }
+    };
 
-        const molecule = (await res.json()) as Partial<MoleculePayload>;
-        setFormData((current) => ({
-          ...current,
-          ...molecule,
-          name: molecule.name ?? current.name,
-          slug: molecule.slug ?? current.slug,
-          synonyms: molecule.synonyms ?? "",
-          imageUrl: molecule.imageUrl ?? "",
-          isPublished: molecule.isPublished ?? current.isPublished,
-          overview: molecule.overview ?? "",
-          backgroundAndApproval: molecule.backgroundAndApproval ?? "",
-          uses: molecule.uses ?? "",
-          administration: molecule.administration ?? "",
-          sideEffects: molecule.sideEffects ?? "",
-          warnings: molecule.warnings ?? "",
-          precautions: molecule.precautions ?? "",
-          expertTips: molecule.expertTips ?? "",
-          faqs: molecule.faqs ?? "",
-          references: molecule.references ?? "",
-        }));
-      } catch {}
-    })();
+    void fetchMoleculeData();
   }, [moleculeId]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, type } = e.target;
-    const checked = e.target instanceof HTMLInputElement ? e.target.checked : false;
+    const target = e.currentTarget;
+    const { name } = target;
+    const nextValue = target instanceof HTMLInputElement && target.type === 'checkbox' ? target.checked : target.value;
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: nextValue,
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
@@ -189,7 +176,7 @@ export function MoleculeForm({ moleculeId, onSave, onCancel }: MoleculeFormProps
 
       {/* Timestamps */}
       <div className="border p-4 rounded-lg">
-        <p className="text-sm text-gray-600">Created at: {moleculeId ? "Loaded from admin record" : "N/A"}</p>
+        <p className="text-sm text-gray-600">Created at: {moleculeId ? new Date().toLocaleString() : 'N/A'}</p>
       </div>
 
       {/* Form Actions */}

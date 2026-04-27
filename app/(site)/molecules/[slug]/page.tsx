@@ -57,18 +57,7 @@ function MoleculeSection({ title, content }: { title: string; content?: string |
 }
 
 export const revalidate = 3600;
-
-export async function generateStaticParams() {
-  try {
-    const molecules = await prisma.molecule.findMany({
-      where: { isPublished: true },
-      select: { slug: true },
-    });
-    return molecules.map((molecule) => ({ slug: molecule.slug }));
-  } catch {
-    return [];
-  }
-}
+export const dynamic = "force-dynamic";
 
 export const dynamicParams = true;
 
@@ -202,9 +191,23 @@ export default async function MoleculeDetailPage({ params }: Props) {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(moleculeJsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
-      {faqJsonLd ? <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} /> : null}
+      <script
+        id={`molecule-json-ld-${molecule.slug}`}
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(moleculeJsonLd).replace(/</g, "\\u003c") }}
+      />
+      <script
+        id={`molecule-breadcrumb-json-ld-${molecule.slug}`}
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd).replace(/</g, "\\u003c") }}
+      />
+      {faqJsonLd ? (
+        <script
+          id={`molecule-faq-json-ld-${molecule.slug}`}
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd).replace(/</g, "\\u003c") }}
+        />
+      ) : null}
 
       <article className="bg-background">
         <section className="border-b border-border/60 bg-[radial-gradient(circle_at_top_left,_rgba(13,115,119,0.14),_transparent_42%),linear-gradient(180deg,rgba(249,250,251,0.96),rgba(255,255,255,0.92))]">

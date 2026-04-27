@@ -2,10 +2,10 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { FadeIn } from "@/components/motion/fade-in";
 import { ProductSearch } from "@/components/marketing/product-search";
 import { ManagedImage } from "@/components/web/managed-image";
-import { getStableMarketingFallback } from "@/lib/marketing-images";
 import { formatInrFromPaise } from "@/lib/money";
 import { cn } from "@/lib/utils";
 
@@ -19,8 +19,8 @@ type ProductListItem = {
   imageUrl1: string | null;
   imageUrl2: string | null;
   imageUrl3: string | null;
-  isActive: boolean;
   pricePaise: number;
+  isActive: boolean;
   category: {
     id: string;
     name: string;
@@ -31,10 +31,12 @@ type ProductListItem = {
 type Props = {
   items: ProductListItem[];
   division?: { title: string; catalogCategory: string };
+  initialQuery?: string;
 };
 
-export function ProductsContent({ items, division }: Props) {
-  const [searchQuery, setSearchQuery] = useState("");
+export function ProductsContent({ items, division, initialQuery = "" }: Props) {
+  const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState(initialQuery);
 
   const filteredItems = useMemo(() => {
     if (!searchQuery) return items;
@@ -42,7 +44,6 @@ export function ProductsContent({ items, division }: Props) {
     return items.filter(
       (item) =>
         item.name.toLowerCase().includes(query) ||
-        (item.description?.toLowerCase().includes(query) ?? false) ||
         (item.salts?.toLowerCase().includes(query) ?? false) ||
         (item.manufacturer?.toLowerCase().includes(query) ?? false) ||
         (item.category?.name.toLowerCase().includes(query) ?? false),
@@ -52,7 +53,19 @@ export function ProductsContent({ items, division }: Props) {
   return (
     <div className="mx-auto w-full max-w-[1400px] px-4 py-12 md:px-6 lg:px-8 md:py-16">
       <div className="mb-8 space-y-4">
-        <ProductSearch value={searchQuery} onFilter={setSearchQuery} />
+        <ProductSearch
+          initialQuery={initialQuery}
+          onFilter={(query) => {
+            setSearchQuery(query);
+            const next = new URLSearchParams(window.location.search);
+            if (query.trim()) {
+              next.set("q", query.trim());
+            } else {
+              next.delete("q");
+            }
+            router.replace(`/products${next.toString() ? `?${next.toString()}` : ""}`);
+          }}
+        />
 
         {items.length > 0 && (
           <div className="flex items-center justify-between text-sm text-muted-foreground">
@@ -88,62 +101,63 @@ export function ProductsContent({ items, division }: Props) {
         ) : (
           filteredItems.map((m, i) => (
             <FadeIn key={m.id} delay={Math.min(i * 0.03, 0.2)}>
-              {(() => {
-                const imageSrc = m.imageUrl1 || m.imageUrl2 || m.imageUrl3;
-                const fallbackSrc = getStableMarketingFallback(`${m.id}:${m.name}`);
-
-                return (
-                <Link
-                  href={`/products/${m.slug}`}
-                  className="group relative flex flex-col overflow-hidden rounded-2xl border border-border/80 bg-card/50 transition-all hover:border-border hover:bg-card hover:shadow-md"
-                >
+              <Link
+                href={`/products/${m.slug}`}
+                className="group relative flex flex-col overflow-hidden rounded-2xl border border-border/80 bg-card/70 transition-all hover:border-primary/40 hover:bg-card hover:shadow-lg"
+              >
+                {/* Image Section */}
+                {m.imageUrl1 || m.imageUrl2 || m.imageUrl3 ? (
                   <div className="relative h-44 w-full overflow-hidden bg-muted">
                     <ManagedImage
-                      src={imageSrc}
+                      src={m.imageUrl1 || m.imageUrl2 || m.imageUrl3 || ""}
                       alt={m.name}
-                      fallbackSrc={fallbackSrc}
                       fill
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                      className="object-cover transition-transform duration-300 group-hover:scale-105"
+                      sizes="(max-width: 768px) 100vw, 33vw"
+                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                     />
                   </div>
+                ) : (
+                  <div className="h-44 w-full bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center">
+                    <span className="text-xs text-muted-foreground">No image</span>
+                  </div>
+                )}
 
-                  <div className="flex flex-1 flex-col gap-3 p-4">
-                    <div>
-                      <h3 className="font-[family-name:var(--font-display)] text-lg font-medium leading-tight group-hover:text-primary transition-colors line-clamp-2">
-                        {m.name}
-                      </h3>
-                      <p className="mt-2 text-xs text-muted-foreground line-clamp-2">{m.salts}</p>
-                      {(m.category?.name || m.manufacturer) && (
-                        <p className="mt-2 text-xs uppercase tracking-wider text-muted-foreground/70">
-                          {[m.category?.name, m.manufacturer].filter(Boolean).join(" · ")}
-                        </p>
-                      )}
-                    </div>
-
-                    {m.description && (
-                      <p className="text-xs leading-relaxed text-muted-foreground line-clamp-2">{m.description}</p>
+                {/* Content Section */}
+                <div className="flex flex-1 flex-col gap-3 p-4">
+                  <div>
+                    <h3 className="font-[family-name:var(--font-display)] text-lg font-medium leading-tight group-hover:text-primary transition-colors line-clamp-2">
+                      {m.name}
+                    </h3>
+                    <p className="mt-2 text-xs text-foreground/80 line-clamp-2">{m.salts}</p>
+                    {(m.category?.name || m.manufacturer) && (
+                      <p className="mt-2 text-xs uppercase tracking-wider text-foreground/60">
+                        {[m.category?.name, m.manufacturer].filter(Boolean).join(" · ")}
+                      </p>
                     )}
+                  </div>
 
-                    <div className="mt-auto flex items-center justify-between gap-2 pt-2 border-t border-border/50">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold tabular-nums text-foreground">
-                          {formatInrFromPaise(m.pricePaise)}
-                        </span>
-                        <span
-                          className={cn(
-                            "text-xs font-medium px-2 py-0.5 rounded-full",
-                            m.isActive ? "bg-primary/15 text-primary" : "bg-destructive/15 text-destructive",
-                          )}
-                        >
-                          {m.isActive ? "Active" : "Inactive"}
-                        </span>
-                      </div>
+                  {m.description && (
+                    <p className="text-xs leading-relaxed text-foreground/75 line-clamp-2">{m.description}</p>
+                  )}
+
+                  {/* Footer with Price and Stock */}
+                  <div className="mt-auto flex items-center justify-between gap-2 pt-2 border-t border-border/50">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold tabular-nums text-foreground">
+                        {formatInrFromPaise(m.pricePaise)}
+                      </span>
+                      <span
+                        className={cn(
+                          "text-xs font-medium px-2 py-0.5 rounded-full",
+                          m.isActive ? "bg-primary/15 text-primary" : "bg-destructive/15 text-destructive",
+                        )}
+                      >
+                        {m.isActive ? "In stock" : "Out of stock"}
+                      </span>
                     </div>
                   </div>
-                </Link>
-                );
-              })()}
+                </div>
+              </Link>
             </FadeIn>
           ))
         )}

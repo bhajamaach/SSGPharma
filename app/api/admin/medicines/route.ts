@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { internalServerError, parseJsonBody } from "@/lib/api";
 import { medicineCreateSchema } from "@/lib/validators/medicine";
 import { prisma } from "@/lib/prisma";
-import { requireAdminApi } from "@/lib/require-admin";
+import { requireAdminMutation } from "@/lib/require-admin";
 import { slugify } from "@/lib/slug";
 
 async function resolveCategoryId(category: string | null | undefined) {
@@ -57,7 +57,7 @@ function mapProductToMedicine(product: {
 }
 
 export async function POST(request: Request): Promise<Response> {
-  const denied = await requireAdminApi();
+  const denied = await requireAdminMutation(request);
   if (denied) return denied;
 
   try {

@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { internalServerError, parseJsonBody } from "@/lib/api";
 import { medicineUpdateSchema } from "@/lib/validators/medicine";
 import { prisma } from "@/lib/prisma";
-import { requireAdminApi } from "@/lib/require-admin";
+import { requireAdminMutation } from "@/lib/require-admin";
 import { slugify } from "@/lib/slug";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -59,7 +59,7 @@ function mapProductToMedicine(product: {
 }
 
 export async function PATCH(request: Request, ctx: Ctx): Promise<Response> {
-  const denied = await requireAdminApi();
+  const denied = await requireAdminMutation(request);
   if (denied) return denied;
 
   try {
@@ -119,8 +119,8 @@ export async function PATCH(request: Request, ctx: Ctx): Promise<Response> {
   }
 }
 
-export async function DELETE(_request: Request, ctx: Ctx): Promise<Response> {
-  const denied = await requireAdminApi();
+export async function DELETE(request: Request, ctx: Ctx): Promise<Response> {
+  const denied = await requireAdminMutation(request);
   if (denied) return denied;
   try {
     const { id } = await ctx.params;

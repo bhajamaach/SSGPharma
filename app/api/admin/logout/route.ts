@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { clearAdminSessionCookie } from "@/lib/admin-session";
 import { internalServerError } from "@/lib/api";
-import { requireAdminApi } from "@/lib/require-admin";
+import { requireAdminMutation } from "@/lib/require-admin";
 
-export async function POST(): Promise<Response> {
-  const denied = await requireAdminApi();
+export async function POST(request: Request): Promise<Response> {
+  const denied = await requireAdminMutation(request);
   if (denied) return denied;
 
   try {

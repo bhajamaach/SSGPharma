@@ -129,7 +129,7 @@ export function MoleculesSearch({ molecules, moleculeCount }: MoleculesSearchPro
                 </div>
                 <div className="space-y-4 p-6">
                   <div>
-                    <h3 className="font-[family-name:var(--font-display)] text-2xl text-foreground">
+                    <h3 className="font-(family-name:--font-display) text-2xl text-foreground">
                       {molecule.name}
                     </h3>
                     {molecule.synonyms ? (

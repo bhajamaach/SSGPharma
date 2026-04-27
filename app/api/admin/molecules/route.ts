@@ -1,32 +1,42 @@
 import { NextRequest, NextResponse } from "next/server";
-import { internalServerError, parseJsonBody } from "@/lib/api";
-import { requireAdminApi } from "@/lib/require-admin";
+import { revalidatePath } from "next/cache";
+import { requireAdminApi, requireAdminMutation } from "@/lib/require-admin";
+import { parseJsonBody } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
 import { createMoleculeSchema } from "@/lib/validators/molecule";
 
-export async function GET(): Promise<Response> {
-  try {
-    const denied = await requireAdminApi();
-    if (denied) return denied;
-
-    const molecules = await prisma.molecule.findMany({
-      orderBy: { name: "asc" },
-    });
-    return NextResponse.json(molecules);
-  } catch {
-    return internalServerError();
+function revalidateMoleculePaths(slug?: string) {
+  revalidatePath("/molecules");
+  if (slug) {
+    revalidatePath(`/molecules/${slug}`);
   }
 }
 
-export async function POST(req: NextRequest): Promise<Response> {
+export async function GET() {
   const adminCheck = await requireAdminApi();
   if (adminCheck instanceof NextResponse) return adminCheck;
 
   try {
+    const molecules = await prisma.molecule.findMany({
+      orderBy: { name: "asc" },
+    });
+    return NextResponse.json(molecules);
+  } catch (error) {
+    console.error("Error fetching molecules:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch molecules" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(req: NextRequest) {
+  const adminCheck = await requireAdminMutation(req);
+  if (adminCheck instanceof NextResponse) return adminCheck;
+
+  try {
     const parsed = await parseJsonBody(req, createMoleculeSchema);
-    if (!parsed.success) {
-      return parsed.response;
-    }
+    if (!parsed.success) return parsed.response;
     const validated = parsed.data;
 
     const molecule = await prisma.molecule.create({
@@ -34,7 +44,7 @@ export async function POST(req: NextRequest): Promise<Response> {
         name: validated.name,
         slug: validated.slug,
         synonyms: validated.synonyms,
-        imageUrl: validated.imageUrl || null,
+        imageUrl: validated.imageUrl ?? null,
         isPublished: validated.isPublished,
         overview: validated.overview,
         backgroundAndApproval: validated.backgroundAndApproval,
@@ -49,8 +59,14 @@ export async function POST(req: NextRequest): Promise<Response> {
       },
     });
 
+    revalidateMoleculePaths(molecule.slug);
+
     return NextResponse.json(molecule, { status: 201 });
-  } catch {
-    return internalServerError();
+  } catch (error) {
+    console.error("Error creating molecule:", error);
+    return NextResponse.json(
+      { error: "Failed to create molecule" },
+      { status: 500 }
+    );
   }
 }

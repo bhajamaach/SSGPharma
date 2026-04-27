@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { connection } from "next/server";
 import { FadeIn } from "@/components/motion/fade-in";
 import { ProductsContent } from "@/components/marketing/products-content";
 import { getProductDivision, productDivisions } from "@/lib/divisions";
@@ -13,17 +12,30 @@ import { cn } from "@/lib/utils";
 export const revalidate = 3600;
 
 type Props = {
-  searchParams: Promise<{ division?: string }>;
+  searchParams: Promise<{ division?: string; q?: string }>;
 };
 
 async function getProductsPageData(searchParamsPromise: Props["searchParams"]) {
   try {
-    const { division: divisionSlug } = await searchParamsPromise;
+    const { division: divisionSlug, q } = await searchParamsPromise;
+    const normalizedQuery = q?.trim() ?? "";
     const division = divisionSlug ? getProductDivision(divisionSlug) : undefined;
 
     const items = await prisma.product
       .findMany({
-        where: division ? { category: { is: { slug: division.slug } } } : undefined,
+        where: {
+          ...(division ? { category: { is: { slug: division.slug } } } : {}),
+          ...(normalizedQuery
+            ? {
+                OR: [
+                  { name: { contains: normalizedQuery } },
+                  { salts: { contains: normalizedQuery } },
+                  { manufacturer: { contains: normalizedQuery } },
+                  { category: { is: { name: { contains: normalizedQuery } } } },
+                ],
+              }
+            : {}),
+        },
         orderBy: [{ isActive: "desc" }, { name: "asc" }],
         select: {
           id: true,
@@ -48,7 +60,7 @@ async function getProductsPageData(searchParamsPromise: Props["searchParams"]) {
       })
       .catch(() => []);
 
-    return { division, items };
+    return { division, items, query: normalizedQuery };
   } catch {
     return null;
   }
@@ -82,7 +94,6 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 }
 
 export default async function ProductsPage({ searchParams }: Props) {
-  await connection();
   const data = await getProductsPageData(searchParams);
   if (!data) {
     return (
@@ -93,7 +104,7 @@ export default async function ProductsPage({ searchParams }: Props) {
     );
   }
 
-  const { division, items } = data;
+  const { division, items, query } = data;
 
   return (
     <>
@@ -150,7 +161,7 @@ export default async function ProductsPage({ searchParams }: Props) {
         </div>
       </section>
 
-        <ProductsContent items={items} division={division} />
+        <ProductsContent items={items} division={division} initialQuery={query} />
       </>
   );
 }

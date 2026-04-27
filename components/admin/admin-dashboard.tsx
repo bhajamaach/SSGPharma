@@ -1,7 +1,7 @@
 "use client";
 
 import type { ChangeEvent, FormEvent, ReactNode } from "react";
-import { Fragment, startTransition, useDeferredValue, useEffect, useState } from "react";
+import { startTransition, useDeferredValue, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -9,8 +9,6 @@ import {
   ArrowLeft,
   Boxes,
   CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
   ExternalLink,
   Eye,
   EyeOff,
@@ -33,6 +31,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { ManagedImage } from "@/components/web/managed-image";
 import type { ContactConfigRecord } from "@/lib/contact-config";
 import { slugify } from "@/lib/slug";
 
@@ -78,14 +77,6 @@ type ProductRecord = {
   imageUrl1: string | null;
   imageUrl2: string | null;
   imageUrl3: string | null;
-  molecules: Array<{
-    moleculeId: string;
-    molecule: {
-      id: string;
-      name: string;
-      slug: string;
-    };
-  }>;
   createdAt: string;
   updatedAt: string;
 };
@@ -144,7 +135,6 @@ type ProductFormState = {
   imageUrl1: string;
   imageUrl2: string;
   imageUrl3: string;
-  moleculeIds: string[];
   clearImage1: boolean;
   clearImage2: boolean;
   clearImage3: boolean;
@@ -218,7 +208,7 @@ const productImageSlots: Array<{
 ];
 
 const fieldClassName =
-  "border-gray-300 bg-white focus-visible:border-[#0D7377] focus-visible:ring-[#0D7377]/20";
+  "border-input bg-background text-foreground focus-visible:border-primary focus-visible:ring-primary/30";
 
 function emptyProductForm(): ProductFormState {
   return {
@@ -246,7 +236,6 @@ function emptyProductForm(): ProductFormState {
     imageUrl1: "",
     imageUrl2: "",
     imageUrl3: "",
-    moleculeIds: [],
     clearImage1: false,
     clearImage2: false,
     clearImage3: false,
@@ -297,23 +286,10 @@ function inputToPaise(value: string): number {
 }
 
 function formatDate(value: string) {
-  const date = new Date(value);
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  const day = String(date.getUTCDate()).padStart(2, "0");
-  const month = months[date.getUTCMonth()];
-  const year = date.getUTCFullYear();
-  const hours = String(date.getUTCHours()).padStart(2, "0");
-  const minutes = String(date.getUTCMinutes()).padStart(2, "0");
-  return `${day} ${month} ${year}, ${hours}:${minutes} UTC`;
-}
-
-function formatDateOnly(value: string) {
-  const date = new Date(value);
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  const day = String(date.getUTCDate()).padStart(2, "0");
-  const month = months[date.getUTCMonth()];
-  const year = date.getUTCFullYear();
-  return `${day} ${month} ${year}`;
+  return new Date(value).toLocaleString("en-IN", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
 }
 
 function isCurrentDay(value: string) {
@@ -348,42 +324,16 @@ function readFileAsDataUrl(file: File) {
   });
 }
 
-async function readFileAsOptimizedDataUrl(file: File) {
-  const original = await readFileAsDataUrl(file);
-
-  if (file.type === "image/svg+xml" || file.type === "image/gif") {
-    return original;
-  }
-
-  try {
-    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const nextImage = new window.Image();
-      nextImage.onload = () => resolve(nextImage);
-      nextImage.onerror = () => reject(new Error("Could not decode image"));
-      nextImage.src = original;
-    });
-
-    const maxDimension = 1600;
-    const scale = Math.min(1, maxDimension / Math.max(image.width, image.height));
-    const width = Math.max(1, Math.round(image.width * scale));
-    const height = Math.max(1, Math.round(image.height * scale));
-
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-
-    const context = canvas.getContext("2d");
-    if (!context) return original;
-
-    context.drawImage(image, 0, 0, width, height);
-    return canvas.toDataURL("image/webp", 0.82);
-  } catch {
-    return original;
-  }
-}
-
 function isInlineImageValue(value: string) {
   return value.startsWith("data:") || value.startsWith("blob:");
+}
+
+function getImageInputValue(value: string) {
+  if (!value || isInlineImageValue(value)) {
+    return "";
+  }
+
+  return value;
 }
 
 async function fetchJson<T>(url: string) {
@@ -503,127 +453,18 @@ function PasswordField({
   );
 }
 
-type AdminImagePreview = {
-  src: string;
-  alt: string;
-  label: string;
-};
-
-function AdminImagePreviewPanel({
-  images,
-  emptyLabel,
-}: {
-  images: AdminImagePreview[];
-  emptyLabel: string;
-}) {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [touchStartX, setTouchStartX] = useState<number | null>(null);
-
-  useEffect(() => {
-    if (images.length === 0) {
-      setActiveIndex(0);
-      return;
-    }
-
-    if (activeIndex > images.length - 1) {
-      setActiveIndex(0);
-    }
-  }, [activeIndex, images.length]);
-
-  if (images.length === 0) {
+function ImagePreview({ src, alt }: { src?: string; alt: string }) {
+  if (!src) {
     return (
-      <div className="flex min-h-40 items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50/80 px-4 py-6 text-center text-sm text-gray-500">
-        {emptyLabel}
+      <div className="flex size-[120px] items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50 text-center text-xs text-gray-500">
+        No preview
       </div>
     );
   }
 
-  const activeImage = images[activeIndex] ?? images[0]!;
-  const hasMultipleImages = images.length > 1;
-
-  function showPreviousImage() {
-    setActiveIndex((current) => (current - 1 + images.length) % images.length);
-  }
-
-  function showNextImage() {
-    setActiveIndex((current) => (current + 1) % images.length);
-  }
-
-  function handleTouchStart(event: React.TouchEvent<HTMLDivElement>) {
-    if (!hasMultipleImages) return;
-    setTouchStartX(event.changedTouches[0]?.clientX ?? null);
-  }
-
-  function handleTouchEnd(event: React.TouchEvent<HTMLDivElement>) {
-    if (!hasMultipleImages || touchStartX === null) return;
-
-    const touchEndX = event.changedTouches[0]?.clientX ?? touchStartX;
-    const deltaX = touchEndX - touchStartX;
-    const swipeThreshold = 35;
-
-    if (deltaX <= -swipeThreshold) {
-      showNextImage();
-    } else if (deltaX >= swipeThreshold) {
-      showPreviousImage();
-    }
-
-    setTouchStartX(null);
-  }
-
   return (
-    <div className="rounded-lg border border-gray-200 bg-gray-50/80 p-4">
-      <div className="flex flex-col items-center gap-3">
-        <div
-          className="relative flex h-[160px] w-full max-w-[240px] items-center justify-center overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm"
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={activeImage.src} alt={activeImage.alt} className="h-full w-full object-contain p-2" />
-
-          {hasMultipleImages ? (
-            <>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon-sm"
-                className="absolute left-2 top-1/2 -translate-y-1/2 border-gray-300 bg-white/95 shadow-sm"
-                onClick={showPreviousImage}
-                aria-label="Previous image"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon-sm"
-                className="absolute right-2 top-1/2 -translate-y-1/2 border-gray-300 bg-white/95 shadow-sm"
-                onClick={showNextImage}
-                aria-label="Next image"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-white/90 px-2 py-0.5 text-[11px] font-medium text-gray-600 shadow-sm">
-                {activeIndex + 1} / {images.length}
-              </div>
-            </>
-          ) : null}
-        </div>
-        <p className="text-xs font-medium text-gray-600">{activeImage.label}</p>
-        {hasMultipleImages ? (
-          <div className="flex items-center gap-1.5">
-            {images.map((image, index) => (
-              <button
-                key={`${image.label}-${index}`}
-                type="button"
-                onClick={() => setActiveIndex(index)}
-                className={`h-2 w-2 rounded-full transition ${index === activeIndex ? "bg-[#0D7377]" : "bg-gray-300 hover:bg-gray-400"}`}
-                aria-label={`Show image ${index + 1}`}
-              />
-            ))}
-          </div>
-        ) : null}
-      </div>
+    <div className="relative size-[120px] overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
+      <ManagedImage src={src} alt={alt} fill sizes="120px" className="object-cover" />
     </div>
   );
 }
@@ -797,7 +638,6 @@ export function AdminDashboard() {
       imageUrl1: product.imageUrl1 ?? "",
       imageUrl2: product.imageUrl2 ?? "",
       imageUrl3: product.imageUrl3 ?? "",
-      moleculeIds: product.molecules.map((entry) => entry.moleculeId),
       clearImage1: false,
       clearImage2: false,
       clearImage3: false,
@@ -873,7 +713,7 @@ export function AdminDashboard() {
     if (!file) return;
 
     try {
-      const dataUrl = await readFileAsOptimizedDataUrl(file);
+      const dataUrl = await readFileAsDataUrl(file);
       setProductForm((current) => ({
         ...current,
         [`imageUrl${slot}`]: dataUrl,
@@ -889,7 +729,7 @@ export function AdminDashboard() {
     if (!file) return;
 
     try {
-      const dataUrl = await readFileAsOptimizedDataUrl(file);
+      const dataUrl = await readFileAsDataUrl(file);
       setMoleculeForm((current) => ({
         ...current,
         imageUrl: dataUrl,
@@ -936,7 +776,6 @@ export function AdminDashboard() {
       imageUrl1: productForm.clearImage1 ? null : productForm.imageUrl1 || null,
       imageUrl2: productForm.clearImage2 ? null : productForm.imageUrl2 || null,
       imageUrl3: productForm.clearImage3 ? null : productForm.imageUrl3 || null,
-      moleculeIds: productForm.moleculeIds,
     };
 
     try {
@@ -949,8 +788,14 @@ export function AdminDashboard() {
       if (!response.ok) {
         const errorBody = (await response.json().catch(() => ({ error: "Could not save product." }))) as {
           error?: string;
+          details?: {
+            fieldErrors?: Record<string, string[] | undefined>;
+          };
         };
-        throw new Error(errorBody.error || "Could not save product.");
+        const fieldMessages = Object.values(errorBody.details?.fieldErrors ?? {})
+          .flat()
+          .filter((message): message is string => Boolean(message));
+        throw new Error(fieldMessages[0] || errorBody.error || "Could not save product.");
       }
 
       const saved = (await response.json()) as ProductRecord;
@@ -1121,64 +966,6 @@ export function AdminDashboard() {
     }
   }
 
-  async function deleteProduct(id: string) {
-    if (!window.confirm("Delete this product? This cannot be undone.")) return;
-
-    setProductSaving(true);
-    setProductBanner(null);
-
-    try {
-      const response = await fetch(`/api/admin/products/${id}`, { method: "DELETE" });
-      if (!response.ok) {
-        throw new Error("Could not delete product.");
-      }
-
-      await loadProducts();
-      startTransition(() => {
-        setEditingProduct(null);
-        setProductForm(emptyProductForm());
-        setProductsView("list");
-      });
-      setProductBanner({ type: "success", text: "Product deleted." });
-    } catch (error) {
-      setProductBanner({
-        type: "error",
-        text: error instanceof Error ? error.message : "Could not delete product.",
-      });
-    } finally {
-      setProductSaving(false);
-    }
-  }
-
-  async function deleteMolecule(id: string) {
-    if (!window.confirm("Delete this molecule? This cannot be undone.")) return;
-
-    setMoleculeSaving(true);
-    setMoleculeBanner(null);
-
-    try {
-      const response = await fetch(`/api/admin/molecules/${id}`, { method: "DELETE" });
-      if (!response.ok) {
-        throw new Error("Could not delete molecule.");
-      }
-
-      await loadMolecules();
-      startTransition(() => {
-        setEditingMolecule(null);
-        setMoleculeForm(emptyMoleculeForm());
-        setMoleculesView("list");
-      });
-      setMoleculeBanner({ type: "success", text: "Molecule deleted." });
-    } catch (error) {
-      setMoleculeBanner({
-        type: "error",
-        text: error instanceof Error ? error.message : "Could not delete molecule.",
-      });
-    } finally {
-      setMoleculeSaving(false);
-    }
-  }
-
   async function handleChangePassword(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setPasswordBanner(null);
@@ -1296,93 +1083,49 @@ export function AdminDashboard() {
     .sort((left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime())
     .slice(0, 10);
 
-  const productPreviewImages = productImageSlots
-    .map(({ slot, imageKey, clearKey }) => {
-      const src = productForm[clearKey] ? "" : productForm[imageKey].trim();
-
-      if (!src) return null;
-
-      return {
-        src,
-        alt: `Product image ${slot} preview`,
-        label: `Image ${slot}`,
-      };
-    })
-    .filter((image): image is AdminImagePreview => Boolean(image));
-
-  const moleculePreviewImages =
-    moleculeForm.clearImage || !moleculeForm.imageUrl.trim()
-      ? []
-      : [
-          {
-            src: moleculeForm.imageUrl.trim(),
-            alt: `${moleculeForm.name || "Molecule"} image preview`,
-            label: "Image 1",
-          },
-        ];
-
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="admin-theme min-h-screen bg-background">
       <div className="sticky top-0 z-20 border-b border-gray-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 md:py-5 lg:px-8">
-          <div className="flex flex-col gap-3 md:gap-5 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#0D7377]">Admin Console</p>
-              <h1 className="mt-1.5 text-2xl font-semibold tracking-tight text-gray-900 md:mt-2 md:text-3xl">SSG Pharma Management</h1>
-              <p className="mt-1.5 text-xs text-gray-500 md:mt-2 md:text-sm">Catalog, molecules, contacts, and account settings in one place.</p>
-            </div>
-            <div className="flex w-full flex-col gap-3 lg:w-auto">
-              <div className="md:hidden">
-                <label htmlFor="admin-tab-select" className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
-                  Section
-                </label>
-                <select
-                  id="admin-tab-select"
-                  value={activeTab}
-                  onChange={(event) => setActiveTab(event.target.value as TabId)}
-                  className="flex h-11 w-full rounded-2xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 outline-none transition focus:border-[#0D7377] focus:ring-4 focus:ring-[#0D7377]/10"
-                >
-                  {tabs.map((tab) => (
-                    <option key={tab.id} value={tab.id}>
-                      {tab.label}
-                    </option>
-                  ))}
-                </select>
+        <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 sm:py-5 lg:px-8">
+          <div className="flex flex-col gap-3 sm:gap-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#0D7377]">Admin Console</p>
+                <h1 className="mt-1.5 text-2xl font-semibold tracking-tight text-gray-900 sm:mt-2 sm:text-3xl">SSG Pharma Management</h1>
+                <p className="mt-2 text-sm text-gray-500">Catalog, molecules, contacts, and account settings in one place.</p>
               </div>
-
-              <div className="hidden flex-wrap items-center gap-2 md:flex">
-                {tabs.map((tab) => {
-                  const Icon = tab.icon;
-                  const active = activeTab === tab.id;
-                  return (
-                    <button
-                      key={tab.id}
-                      type="button"
-                      onClick={() => setActiveTab(tab.id)}
-                      className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition ${
-                        active
-                          ? "border-[#0D7377] bg-[#0D7377] text-white shadow-sm"
-                          : "border-gray-200 bg-white text-gray-600 hover:border-[#0D7377]/40 hover:text-[#0D7377] active:scale-[0.99]"
-                      }`}
-                    >
-                      <Icon className="h-4 w-4" />
-                      <span>{tab.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-
               <Button
                 type="button"
                 variant="outline"
-                size="sm"
-                className="self-end rounded-full border-gray-300 bg-white/90 px-2.5 text-[11px] text-gray-500 hover:border-gray-400 hover:text-gray-700 md:w-fit md:self-start"
+                size="xs"
+                className="mt-0.5 h-8 shrink-0 rounded-full border-gray-300 bg-white px-3 text-xs text-gray-600 hover:border-[#0D7377]/40 hover:text-[#0D7377]"
                 onClick={handleLogout}
                 disabled={logoutSaving}
               >
-                {logoutSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
+                {logoutSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <LogOut className="h-3.5 w-3.5" />}
                 Logout
               </Button>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {tabs.map((tab) => {
+                const Icon = tab.icon;
+                const active = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition sm:px-4 sm:py-2 sm:text-sm ${
+                      active
+                        ? "border-[#0D7377] bg-[#0D7377] text-white shadow-sm"
+                        : "border-gray-200 bg-white text-gray-600 hover:border-[#0D7377]/40 hover:text-[#0D7377] active:scale-[0.99]"
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span>{tab.label}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -1511,57 +1254,38 @@ export function AdminDashboard() {
                 ) : filteredProducts.length === 0 ? (
                   <EmptyState icon={Boxes} title="No products found" description="Try a different search term or add a new product to start building the catalog." />
                 ) : (
-                  <>
-                    <div className="space-y-3 md:hidden">
-                      {filteredProducts.map((product) => (
-                        <button
-                          key={product.id}
-                          type="button"
-                          onClick={() => openEditProductForm(product)}
-                          className="w-full rounded-2xl border border-gray-200 bg-white p-4 text-left shadow-sm transition hover:border-[#0D7377]/30 hover:bg-[#0D7377]/[0.03]"
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div>
-                              <p className="font-semibold text-gray-900">{product.name}</p>
-                              <p className="mt-1 text-xs uppercase tracking-[0.16em] text-gray-500">{product.slug}</p>
-                            </div>
-                            <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${product.isActive ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-600"}`}>
-                              {product.isActive ? "Active" : "Inactive"}
-                            </span>
-                          </div>
-                          <div className="mt-3 grid gap-2 text-sm text-gray-600">
-                            <p><span className="font-medium text-gray-900">Category:</span> {product.category?.name ?? "Uncategorized"}</p>
-                            <p><span className="font-medium text-gray-900">Price:</span> {paiseToInput(product.pricePaise)}</p>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-
-                    <div className="hidden overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm md:block">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                          <tr className="text-left text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
-                            <th className="px-6 py-4">Name</th>
-                            <th className="px-6 py-4">Slug</th>
-                            <th className="px-6 py-4">Category</th>
+                  <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr className="text-left text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
+                          <th className="px-6 py-4">Name</th>
+                          <th className="px-6 py-4">Slug</th>
+                          <th className="px-6 py-4">Category</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {filteredProducts.map((product) => (
+                          <tr
+                            key={product.id}
+                            onClick={() => openEditProductForm(product)}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+                                openEditProductForm(product);
+                              }
+                            }}
+                            tabIndex={0}
+                            role="button"
+                            className="cursor-pointer transition hover:bg-[#0D7377]/5 active:bg-[#0D7377]/10"
+                          >
+                            <td className="px-6 py-4 font-medium text-gray-900">{product.name}</td>
+                            <td className="px-6 py-4 text-sm text-gray-600">{product.slug}</td>
+                            <td className="px-6 py-4 text-sm text-gray-600">{product.category?.name ?? "Uncategorized"}</td>
                           </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                          {filteredProducts.map((product) => (
-                            <tr
-                              key={product.id}
-                              onClick={() => openEditProductForm(product)}
-                              className="cursor-pointer transition hover:bg-[#0D7377]/5 active:bg-[#0D7377]/10"
-                            >
-                              <td className="px-6 py-4 font-medium text-gray-900">{product.name}</td>
-                              <td className="px-6 py-4 text-sm text-gray-600">{product.slug}</td>
-                              <td className="px-6 py-4 text-sm text-gray-600">{product.category?.name ?? "Uncategorized"}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
               </>
             ) : (
@@ -1585,18 +1309,6 @@ export function AdminDashboard() {
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {editingProduct ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-                        onClick={() => void deleteProduct(editingProduct.id)}
-                        disabled={productSaving}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        Delete
-                      </Button>
-                    ) : null}
                     <Button
                       type="button"
                       variant="outline"
@@ -1758,79 +1470,26 @@ export function AdminDashboard() {
                         className={fieldClassName}
                       />
                     </div>
-                  </div>
-                </SectionCard>
-
-                <SectionCard title="Molecules & Search" description="Use linked molecules for better alternates and molecule pages. Salt names can be pasted one per line or comma-separated.">
-                  <div className="grid gap-4">
-                    <div className="space-y-2">
+                    <div className="space-y-2 md:col-span-2">
                       <label htmlFor="product-salts" className="text-sm font-medium text-gray-700">
-                        Salt / Active Ingredient
+                        Salt
                       </label>
-                      <Textarea
+                      <Input
                         id="product-salts"
                         value={productForm.salts}
                         onChange={(event) => setProductForm((current) => ({ ...current, salts: event.target.value }))}
                         className={fieldClassName}
-                        placeholder={"Teriparatide\nor\nTeriparatide, Calcium"}
                       />
-                      <p className="text-xs text-gray-500">This text powers search, related alternatives, and SEO copy on the public product page.</p>
-                    </div>
-
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-medium text-gray-700">Linked Molecule Pages</p>
-                          <p className="text-xs text-gray-500">Select the molecule records that match this product.</p>
-                        </div>
-                        <span className="text-xs font-medium text-gray-500">{productForm.moleculeIds.length} selected</span>
-                      </div>
-
-                      {moleculesState === "loading" ? (
-                        <div className="rounded-lg border border-dashed border-gray-300 px-4 py-3 text-sm text-gray-500">Loading molecules…</div>
-                      ) : molecules.length === 0 ? (
-                        <div className="rounded-lg border border-dashed border-gray-300 px-4 py-3 text-sm text-gray-500">
-                          Add molecules first if you want alternates and molecule pages linked automatically.
-                        </div>
-                      ) : (
-                        <div className="grid gap-2 md:grid-cols-2">
-                          {molecules.map((molecule) => {
-                            const checked = productForm.moleculeIds.includes(molecule.id);
-
-                            return (
-                              <label key={molecule.id} className="flex items-start gap-3 rounded-lg border border-gray-200 px-3 py-3 text-sm text-gray-700">
-                                <input
-                                  type="checkbox"
-                                  checked={checked}
-                                  onChange={() =>
-                                    setProductForm((current) => ({
-                                      ...current,
-                                      moleculeIds: checked
-                                        ? current.moleculeIds.filter((id) => id !== molecule.id)
-                                        : [...current.moleculeIds, molecule.id],
-                                    }))
-                                  }
-                                  className="mt-0.5 h-4 w-4 rounded border-gray-300 text-[#0D7377] focus:ring-[#0D7377]"
-                                />
-                                <span>
-                                  <span className="block font-medium text-gray-900">{molecule.name}</span>
-                                  <span className="block text-xs text-gray-500">{molecule.slug}</span>
-                                </span>
-                              </label>
-                            );
-                          })}
-                        </div>
-                      )}
                     </div>
                   </div>
                 </SectionCard>
 
-                <SectionCard title="Product Details" description="Plain paragraphs are fine. Key benefits and schemes work best one per line. FAQs accept Question?::Answer or question on one line with the answer below.">
+                <SectionCard title="Product Details">
                   <div className="grid gap-4">
                     {[
-                      { id: "description", label: "Description", value: productForm.description, placeholder: "Short product summary for the hero section, SEO description, and product overview." },
-                      { id: "key-benefits", label: "Key Benefits", value: productForm.keyBenefits, placeholder: "One benefit per line" },
-                      { id: "good-to-know", label: "Good to Know", value: productForm.goodToKnow, placeholder: "Short practical notes, commercial context, or storage reminders." },
+                      { id: "description", label: "Description", value: productForm.description },
+                      { id: "key-benefits", label: "Key Benefits", value: productForm.keyBenefits },
+                      { id: "good-to-know", label: "Good to Know", value: productForm.goodToKnow },
                     ].map((field, index) => (
                       <div key={field.id} className="space-y-2">
                         <label htmlFor={field.id} className="text-sm font-medium text-gray-700">
@@ -1849,7 +1508,6 @@ export function AdminDashboard() {
                             )
                           }
                           className={fieldClassName}
-                          placeholder={field.placeholder}
                         />
                       </div>
                     ))}
@@ -1901,26 +1559,16 @@ export function AdminDashboard() {
                             }))
                           }
                           className={fieldClassName}
-                          placeholder={
-                            field.key === "specialBenefitSchemes"
-                              ? "One scheme per line"
-                              : field.key === "faqs"
-                                ? "What is this product used for?::Answer\n\nHow is it administered?\nAnswer on the next line."
-                                : undefined
-                          }
                         />
                         {field.key === "specialBenefitSchemes" ? (
                           <p className="text-xs text-gray-500">Enter each scheme on a new line, e.g. 1+1 Free Vial Scheme</p>
-                        ) : field.key === "faqs" ? (
-                          <p className="text-xs text-gray-500">We parse FAQs into separate questions and answers on the live product page.</p>
                         ) : null}
                       </div>
                     ))}
                   </div>
                 </SectionCard>
 
-                <SectionCard title="Images" description="Upload up to three images of the product">
-                  <AdminImagePreviewPanel images={productPreviewImages} emptyLabel="Add a product image by pasting a URL or uploading a file." />
+                <SectionCard title="Images" description="Upload up to three images or paste direct image links.">
                   <div className="grid gap-4 lg:grid-cols-3">
                     {productImageSlots.map(({ slot, imageKey, clearKey }) => {
                       const value = productForm[imageKey];
@@ -1929,14 +1577,17 @@ export function AdminDashboard() {
                       return (
                         <div key={slot} className="rounded-lg border border-gray-200 p-4">
                           <p className="text-sm font-semibold text-gray-900">Image {slot}</p>
+                          <div className="mt-4 flex justify-center">
+                            <ImagePreview src={clearValue ? "" : value} alt={`Product image ${slot} preview`} />
+                          </div>
                           <div className="mt-4 space-y-2">
-                            <label htmlFor={`product-image-url-${slot}`} className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                              Image URL
+                            <label htmlFor={`product-image-url-${slot}`} className="text-xs font-medium text-gray-700">
+                              Paste image link
                             </label>
                             <Input
                               id={`product-image-url-${slot}`}
-                              type="url"
-                              value={isInlineImageValue(value) ? "" : value}
+                              type="text"
+                              value={clearValue ? "" : getImageInputValue(value)}
                               onChange={(event) =>
                                 setProductForm((current) => ({
                                   ...current,
@@ -1947,24 +1598,53 @@ export function AdminDashboard() {
                               placeholder="https://example.com/product-image.jpg"
                               className={fieldClassName}
                             />
-                            <p className="text-xs text-gray-500">Paste a public image URL or upload a file below. Uploaded files are optimized before saving.</p>
                           </div>
-                          <label className="mt-4 inline-flex items-center gap-2 text-sm text-gray-700">
-                            <input
-                              type="checkbox"
-                              checked={clearValue}
-                              onChange={(event) =>
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="border-gray-300"
+                              onClick={() =>
                                 setProductForm((current) => ({
                                   ...current,
-                                  [clearKey]: event.target.checked,
-                                  [imageKey]: event.target.checked ? "" : current[imageKey],
+                                  [clearKey]: true,
                                 }))
                               }
-                              className="h-4 w-4 rounded border-gray-300 text-[#0D7377] focus:ring-[#0D7377]"
+                              disabled={!value && !clearValue}
+                            >
+                              Delete image
+                            </Button>
+                            {clearValue ? (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="border-gray-300"
+                                onClick={() =>
+                                  setProductForm((current) => ({
+                                    ...current,
+                                    [clearKey]: false,
+                                  }))
+                                }
+                              >
+                                Undo
+                              </Button>
+                            ) : null}
+                          </div>
+                          {clearValue ? <p className="mt-2 text-xs text-amber-700">This image will be removed when you save.</p> : null}
+                          <div className="mt-4 space-y-2">
+                            <label htmlFor={`product-image-file-${slot}`} className="text-xs font-medium text-gray-700">
+                              Upload file
+                            </label>
+                            <Input
+                              id={`product-image-file-${slot}`}
+                              type="file"
+                              accept="image/*"
+                              className={fieldClassName}
+                              onChange={(event) => void handleProductImageChange(slot as 1 | 2 | 3, event)}
                             />
-                            Clear
-                          </label>
-                          <Input type="file" accept="image/*" className={`mt-4 ${fieldClassName}`} onChange={(event) => void handleProductImageChange(slot as 1 | 2 | 3, event)} />
+                          </div>
                         </div>
                       );
                     })}
@@ -2040,52 +1720,36 @@ export function AdminDashboard() {
                     ) : filteredMolecules.length === 0 ? (
                       <EmptyState icon={FlaskConical} title="No molecules found" description="Adjust the search or filter settings, or add a new molecule record." />
                     ) : (
-                      <>
-                        <div className="space-y-3 md:hidden">
-                          {filteredMolecules.map((molecule) => (
-                            <button
-                              key={molecule.id}
-                              type="button"
-                              onClick={() => openEditMoleculeForm(molecule)}
-                              className="w-full rounded-2xl border border-gray-200 bg-white p-4 text-left shadow-sm transition hover:border-[#0D7377]/30 hover:bg-[#0D7377]/[0.03]"
-                            >
-                              <div className="flex items-start justify-between gap-3">
-                                <div>
-                                  <p className="font-semibold text-gray-900">{molecule.name}</p>
-                                  <p className="mt-1 text-xs uppercase tracking-[0.16em] text-gray-500">{molecule.slug}</p>
-                                </div>
-                                <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${molecule.isPublished ? "bg-primary/12 text-[#0D7377]" : "bg-gray-100 text-gray-600"}`}>
-                                  {molecule.isPublished ? "Published" : "Draft"}
-                                </span>
-                              </div>
-                              {molecule.synonyms ? <p className="mt-3 text-sm text-gray-600">{molecule.synonyms}</p> : null}
-                            </button>
-                          ))}
-                        </div>
-
-                        <div className="hidden overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm md:block">
-                          <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                              <tr className="text-left text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
-                                <th className="px-6 py-4">Name</th>
-                                <th className="px-6 py-4">Slug</th>
+                      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50">
+                            <tr className="text-left text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
+                              <th className="px-6 py-4">Name</th>
+                              <th className="px-6 py-4">Slug</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100">
+                            {filteredMolecules.map((molecule) => (
+                              <tr
+                                key={molecule.id}
+                                onClick={() => openEditMoleculeForm(molecule)}
+                                onKeyDown={(event) => {
+                                  if (event.key === "Enter" || event.key === " ") {
+                                    event.preventDefault();
+                                    openEditMoleculeForm(molecule);
+                                  }
+                                }}
+                                tabIndex={0}
+                                role="button"
+                                className="cursor-pointer transition hover:bg-[#0D7377]/5 active:bg-[#0D7377]/10"
+                              >
+                                <td className="px-6 py-4 font-medium text-gray-900">{molecule.name}</td>
+                                <td className="px-6 py-4 text-sm text-gray-600">{molecule.slug}</td>
                               </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100">
-                              {filteredMolecules.map((molecule) => (
-                                <tr
-                                  key={molecule.id}
-                                  onClick={() => openEditMoleculeForm(molecule)}
-                                  className="cursor-pointer transition hover:bg-[#0D7377]/5 active:bg-[#0D7377]/10"
-                                >
-                                  <td className="px-6 py-4 font-medium text-gray-900">{molecule.name}</td>
-                                  <td className="px-6 py-4 text-sm text-gray-600">{molecule.slug}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     )}
                   </div>
 
@@ -2143,18 +1807,6 @@ export function AdminDashboard() {
                     <p className="mt-1 text-sm text-gray-500">Publish core molecule content and keep its public reference page tidy.</p>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {editingMolecule ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-                        onClick={() => void deleteMolecule(editingMolecule.id)}
-                        disabled={moleculeSaving}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        Delete
-                      </Button>
-                    ) : null}
                     <Button
                       type="button"
                       variant="outline"
@@ -2240,22 +1892,28 @@ export function AdminDashboard() {
                       <label htmlFor="molecule-image" className="text-sm font-medium text-gray-700">
                         Image
                       </label>
-                      <AdminImagePreviewPanel images={moleculePreviewImages} emptyLabel="Add a molecule image by pasting a URL or uploading a file." />
-                      <Input
-                        id="molecule-image-url"
-                        type="url"
-                        value={isInlineImageValue(moleculeForm.imageUrl) ? "" : moleculeForm.imageUrl}
-                        onChange={(event) =>
-                          setMoleculeForm((current) => ({
-                            ...current,
-                            imageUrl: event.target.value,
-                            clearImage: false,
-                          }))
-                        }
-                        placeholder="https://example.com/molecule-image.jpg"
-                        className={fieldClassName}
-                      />
-                      <p className="text-xs text-gray-500">Paste a public image URL or upload a file below. Uploaded files are optimized before saving.</p>
+                      <div className="mt-1 flex justify-center md:justify-start">
+                        <ImagePreview src={moleculeForm.clearImage ? "" : moleculeForm.imageUrl} alt="Molecule image preview" />
+                      </div>
+                      <div className="space-y-2">
+                        <label htmlFor="molecule-image-url" className="text-xs font-medium text-gray-700">
+                          Paste image link
+                        </label>
+                        <Input
+                          id="molecule-image-url"
+                          type="url"
+                          value={getImageInputValue(moleculeForm.imageUrl)}
+                          onChange={(event) =>
+                            setMoleculeForm((current) => ({
+                              ...current,
+                              imageUrl: event.target.value,
+                              clearImage: false,
+                            }))
+                          }
+                          placeholder="https://example.com/molecule-image.jpg"
+                          className={fieldClassName}
+                        />
+                      </div>
                       <label className="inline-flex items-center gap-2 text-sm text-gray-700">
                         <input
                           type="checkbox"
@@ -2271,7 +1929,12 @@ export function AdminDashboard() {
                         />
                         Clear
                       </label>
-                      <Input id="molecule-image" type="file" accept="image/*" className={fieldClassName} onChange={(event) => void handleMoleculeImageChange(event)} />
+                      <div className="space-y-2">
+                        <label htmlFor="molecule-image" className="text-xs font-medium text-gray-700">
+                          Upload file
+                        </label>
+                        <Input id="molecule-image" type="file" accept="image/*" className={fieldClassName} onChange={(event) => void handleMoleculeImageChange(event)} />
+                      </div>
                     </div>
                   </div>
                   <label className="inline-flex items-center gap-3 text-sm font-medium text-gray-700">
@@ -2285,7 +1948,7 @@ export function AdminDashboard() {
                   </label>
                 </SectionCard>
 
-                <SectionCard title="Content" description="Each field becomes a section on the live molecule page. FAQs accept Question?::Answer, and references accept one URL per line or Label | URL.">
+                <SectionCard title="Content">
                   <div className="grid gap-4">
                     {[
                       { id: "overview", label: "Overview", key: "overview" as const },
@@ -2313,17 +1976,7 @@ export function AdminDashboard() {
                             }))
                           }
                           className={fieldClassName}
-                          placeholder={
-                            field.key === "faqs"
-                              ? "What is amivantamab?::Answer\n\nHow is it administered?\nAnswer on the next line."
-                              : field.key === "references"
-                                ? "1) https://example.com/reference\n2) EMA | https://example.com/ema"
-                                : undefined
-                          }
                         />
-                        {field.key === "references" ? (
-                          <p className="text-xs text-gray-500">URLs stay clickable on the public page, and plain text references still render cleanly.</p>
-                        ) : null}
                       </div>
                     ))}
                   </div>
@@ -2388,75 +2041,8 @@ export function AdminDashboard() {
             {categoriesState === "loading" ? (
               <TableSkeleton columns={3} />
             ) : (
-              <div className="space-y-4">
-                {(isAddingCategory || editingCategoryId) && (
-                  <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm md:hidden">
-                    <form onSubmit={saveCategory} className="grid gap-3">
-                      <Input
-                        value={categoryForm.name}
-                        onChange={(event) =>
-                          setCategoryForm((current) => ({
-                            ...current,
-                            name: event.target.value,
-                            slug: slugify(event.target.value),
-                          }))
-                        }
-                        placeholder="Category name"
-                        className={fieldClassName}
-                      />
-                      <Input
-                        value={categoryForm.slug}
-                        onChange={(event) => setCategoryForm((current) => ({ ...current, slug: slugify(event.target.value) }))}
-                        placeholder="category-slug"
-                        className={fieldClassName}
-                      />
-                      <Input
-                        value={categoryForm.description}
-                        onChange={(event) => setCategoryForm((current) => ({ ...current, description: event.target.value }))}
-                        placeholder="Description"
-                        className={fieldClassName}
-                      />
-                      <div className="flex gap-2">
-                        <Button type="submit" className="bg-[#0D7377] text-white hover:bg-[#0b6669]" disabled={categorySaving}>
-                          {categorySaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
-                        </Button>
-                        <Button type="button" variant="outline" className="border-gray-300" onClick={resetCategoryEditor}>
-                          Cancel
-                        </Button>
-                      </div>
-                    </form>
-                  </div>
-                )}
-
-                <div className="space-y-3 md:hidden">
-                  {categories.map((category) => (
-                    <div key={category.id} className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="font-semibold text-gray-900">{category.name}</p>
-                          <p className="mt-1 text-xs uppercase tracking-[0.16em] text-gray-500">{category.slug}</p>
-                        </div>
-                        <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${category.isActive ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-600"}`}>
-                          {category.isActive ? "Active" : "Inactive"}
-                        </span>
-                      </div>
-                      <p className="mt-3 text-sm text-gray-600">{category.description || "No description"}</p>
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        <Button type="button" variant="outline" className="border-gray-300" onClick={() => beginEditCategory(category)}>
-                          <Pencil className="h-4 w-4" />
-                          Edit
-                        </Button>
-                        <Button type="button" variant="outline" className="border-gray-300" onClick={() => deleteCategory(category.id)}>
-                          <Trash2 className="h-4 w-4" />
-                          Delete
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="hidden overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm md:block">
-                  <table className="min-w-full divide-y divide-gray-200">
+              <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr className="text-left text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
                       <th className="px-6 py-4">Name</th>
@@ -2508,7 +2094,7 @@ export function AdminDashboard() {
                     ) : null}
 
                     {categories.map((category) => (
-                      <Fragment key={category.id}>
+                      <>
                         <tr key={category.id}>
                           <td className="px-6 py-4 font-medium text-gray-900">{category.name}</td>
                           <td className="px-6 py-4 text-sm text-gray-600">{category.slug}</td>
@@ -2563,11 +2149,10 @@ export function AdminDashboard() {
                             </td>
                           </tr>
                         ) : null}
-                      </Fragment>
+                      </>
                     ))}
                   </tbody>
-                  </table>
-                </div>
+                </table>
               </div>
             )}
           </div>
@@ -2591,45 +2176,28 @@ export function AdminDashboard() {
             ) : contacts.length === 0 ? (
               <EmptyState icon={Mail} title="No contact submissions" description="When visitors submit the contact or quote forms, rows will appear here." />
             ) : (
-              <>
-                <div className="space-y-3 md:hidden">
-                  {contacts.map((contact) => (
-                    <div key={contact.id} className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="font-semibold text-gray-900">{contact.name}</p>
-                          <p className="mt-1 text-sm text-gray-600 break-all">{contact.email}</p>
-                        </div>
-                        <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-gray-500">{formatDateOnly(contact.createdAt)}</span>
-                      </div>
-                      <p className="mt-3 text-sm leading-6 text-gray-600">{contact.message}</p>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="hidden overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm md:block">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr className="text-left text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
-                        <th className="px-6 py-4">Name</th>
-                        <th className="px-6 py-4">Email</th>
-                        <th className="px-6 py-4">Message</th>
-                        <th className="px-6 py-4">Date</th>
+              <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr className="text-left text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
+                      <th className="px-6 py-4">Name</th>
+                      <th className="px-6 py-4">Email</th>
+                      <th className="px-6 py-4">Message</th>
+                      <th className="px-6 py-4">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {contacts.map((contact) => (
+                      <tr key={contact.id}>
+                        <td className="px-6 py-4 font-medium text-gray-900">{contact.name}</td>
+                        <td className="px-6 py-4 text-sm text-gray-600">{contact.email}</td>
+                        <td className="px-6 py-4 text-sm text-gray-600">{contact.message}</td>
+                        <td className="px-6 py-4 text-sm text-gray-600">{formatDate(contact.createdAt)}</td>
                       </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {contacts.map((contact) => (
-                        <tr key={contact.id}>
-                          <td className="px-6 py-4 font-medium text-gray-900">{contact.name}</td>
-                          <td className="px-6 py-4 text-sm text-gray-600">{contact.email}</td>
-                          <td className="px-6 py-4 text-sm text-gray-600">{contact.message}</td>
-                          <td className="px-6 py-4 text-sm text-gray-600">{formatDate(contact.createdAt)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         ) : null}

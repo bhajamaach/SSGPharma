@@ -3,22 +3,25 @@ import { SiteFooter } from "@/components/web/footer";
 import { FloatingInquiry } from "@/components/marketing/floating-inquiry";
 import { defaultPublicContactConfig, getContactConfig } from "@/lib/contact-config";
 
-async function getSiteLayoutContactData() {
-  const contactConfig = await getContactConfig().catch(() => defaultPublicContactConfig);
-
-  return {
-    primaryPhone: contactConfig.phones[0]?.value,
-    primaryEmail: contactConfig.emails[0]?.value,
-  };
-}
+export const dynamic = "force-dynamic";
 
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
-  const { primaryPhone, primaryEmail } = await getSiteLayoutContactData();
+  const contactConfig = await getContactConfig().catch(() => defaultPublicContactConfig);
+  const primaryPhone = contactConfig.phones[0]?.value ?? defaultPublicContactConfig.phones[0]?.value ?? "";
+  const primaryEmail = contactConfig.emails[0]?.value ?? defaultPublicContactConfig.emails[0]?.value ?? "";
 
   return (
     <div className="flex min-h-full flex-1 flex-col">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-md focus:bg-background focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-foreground focus:shadow-md"
+      >
+        Skip to main content
+      </a>
       <Navbar />
-      <div className="w-full flex-1">{children}</div>
+      <main id="main-content" className="w-full flex-1">
+        {children}
+      </main>
       <SiteFooter />
       <FloatingInquiry primaryPhone={primaryPhone} primaryEmail={primaryEmail} />
     </div>

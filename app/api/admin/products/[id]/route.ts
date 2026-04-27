@@ -1,20 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
-import { internalServerError, parseJsonBody } from "@/lib/api";
-import { requireAdminApi } from "@/lib/require-admin";
+import { revalidatePath } from "next/cache";
+import { requireAdminApi, requireAdminMutation } from "@/lib/require-admin";
+import { parseJsonBody } from "@/lib/api";
+import { productDivisions } from "@/lib/divisions";
 import { prisma } from "@/lib/prisma";
 import { updateProductSchema } from "@/lib/validators/product";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
-export async function GET(
-  _req: NextRequest,
-  { params }: RouteContext
-): Promise<Response> {
-  try {
-    const denied = await requireAdminApi();
-    if (denied) return denied;
+function revalidateProductPaths(slug?: string) {
+  revalidatePath("/");
+  revalidatePath("/products");
+  for (const division of productDivisions) {
+    revalidatePath(`/divisions/${division.slug}`);
+  }
+  if (slug) {
+    revalidatePath(`/products/${slug}`);
+  }
+}
 
-    const { id } = await params;
+export async function GET(
+  req: NextRequest,
+  { params }: RouteContext
+) {
+  const adminCheck = await requireAdminApi();
+  if (adminCheck instanceof NextResponse) return adminCheck;
+  const { id } = await params;
+  try {
     const product = await prisma.product.findUnique({
       where: { id },
       include: {
@@ -35,87 +47,146 @@ export async function GET(
     }
 
     return NextResponse.json(product);
-  } catch {
-    return internalServerError();
+  } catch (error) {
+    console.error("Error fetching product:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch product" },
+      { status: 500 }
+    );
   }
 }
 
 export async function PATCH(
   req: NextRequest,
   { params }: RouteContext
-): Promise<Response> {
-  const adminCheck = await requireAdminApi();
+) {
+  const adminCheck = await requireAdminMutation(req);
   if (adminCheck instanceof NextResponse) return adminCheck;
+  const { id } = await params;
 
   try {
-    const { id } = await params;
     const parsed = await parseJsonBody(req, updateProductSchema);
-    if (!parsed.success) {
-      return parsed.response;
-    }
+    if (!parsed.success) return parsed.response;
     const validated = parsed.data;
-    const { moleculeIds, ...productData } = validated;
+    const {
+      categoryId,
+      moleculeIds,
+      mrpPaise,
+      imageUrl1,
+      imageUrl2,
+      imageUrl3,
+      ...productData
+    } = validated;
 
-    await prisma.product.update({
+    const existing = await prisma.product.findUnique({
       where: { id },
-      data: {
-        ...productData,
-        categoryId: productData.categoryId || null,
-        mrpPaise: productData.mrpPaise || null,
-        imageUrl1: productData.imageUrl1 || null,
-        imageUrl2: productData.imageUrl2 || null,
-        imageUrl3: productData.imageUrl3 || null,
-      },
+      select: { slug: true },
     });
 
-    if (moleculeIds) {
-      await prisma.productMolecule.deleteMany({
-        where: { productId: id },
+    if (!existing) {
+      return NextResponse.json(
+        { error: "Product not found" },
+        { status: 404 }
+      );
+    }
+
+    const product = await prisma.$transaction(async (tx) => {
+      await tx.product.update({
+        where: { id },
+        data: {
+          ...productData,
+          mrpPaise: mrpPaise ?? null,
+          imageUrl1: imageUrl1 ?? null,
+          imageUrl2: imageUrl2 ?? null,
+          imageUrl3: imageUrl3 ?? null,
+          ...(categoryId !== undefined
+            ? {
+                category: categoryId
+                  ? {
+                      connect: { id: categoryId },
+                    }
+                  : {
+                      disconnect: true,
+                    },
+              }
+            : {}),
+        },
       });
 
-      if (moleculeIds.length > 0) {
-        await prisma.productMolecule.createMany({
-          data: moleculeIds.map((moleculeId) => ({
-            productId: id,
-            moleculeId,
-          })),
+      if (moleculeIds !== undefined) {
+        await tx.productMolecule.deleteMany({
+          where: { productId: id },
         });
-      }
-    }
 
-    const product = await prisma.product.findUniqueOrThrow({
-      where: { id },
-      include: {
-        category: true,
-        molecules: {
-          include: {
-            molecule: true,
+        if (moleculeIds.length > 0) {
+          await tx.productMolecule.createMany({
+            data: moleculeIds.map((moleculeId) => ({
+              productId: id,
+              moleculeId,
+            })),
+          });
+        }
+      }
+
+      return tx.product.findUniqueOrThrow({
+        where: { id },
+        include: {
+          category: true,
+          molecules: {
+            include: {
+              molecule: true,
+            },
           },
         },
-      },
+      });
     });
 
+    revalidateProductPaths(existing.slug);
+    revalidateProductPaths(product.slug);
+
     return NextResponse.json(product);
-  } catch {
-    return internalServerError();
+  } catch (error) {
+    console.error("Error updating product:", error);
+    return NextResponse.json(
+      { error: "Failed to update product" },
+      { status: 500 }
+    );
   }
 }
 
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: RouteContext
-): Promise<Response> {
-  const adminCheck = await requireAdminApi();
+) {
+  const adminCheck = await requireAdminMutation(req);
   if (adminCheck instanceof NextResponse) return adminCheck;
+  const { id } = await params;
 
   try {
-    const { id } = await params;
+    const existing = await prisma.product.findUnique({
+      where: { id },
+      select: { slug: true },
+    });
+
+    if (!existing) {
+      return NextResponse.json(
+        { error: "Product not found" },
+        { status: 404 }
+      );
+    }
+
     await prisma.product.delete({
       where: { id },
     });
 
+    revalidateProductPaths(existing.slug);
+
     return NextResponse.json({ success: true });
-  } catch {
-    return internalServerError();
+  } catch (error) {
+    console.error("Error deleting product:", error);
+    return NextResponse.json(
+      { error: "Failed to delete product" },
+      { status: 500 }
+    );
   }
 }

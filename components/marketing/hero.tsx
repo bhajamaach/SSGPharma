@@ -69,6 +69,7 @@ export function Hero() {
             className="object-cover"
             sizes="(max-width: 1024px) 100vw, 48vw"
             priority
+            loading="eager"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent lg:bg-gradient-to-l" />
         </div>

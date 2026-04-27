@@ -1,126 +1,47 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { FadeIn } from "@/components/motion/fade-in";
 import { DivisionProductsList } from "@/components/marketing/division-products-list";
-import { ManagedImage } from "@/components/web/managed-image";
-import { getProductDivision, productDivisions, type ProductDivision } from "@/lib/divisions";
-import { marketingImages } from "@/lib/marketing-images";
+import { FadeIn } from "@/components/motion/fade-in";
+import { getProductDivision } from "@/lib/divisions";
 import { prisma } from "@/lib/prisma";
 import { getSiteUrl } from "@/lib/site-url";
 
 type Props = { params: Promise<{ slug: string }> };
 
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
 
-export async function generateStaticParams() {
-  try {
-    const categories = await prisma.category.findMany({
-      where: { isActive: true },
-      select: { slug: true },
-    });
-    const slugs = new Set([...productDivisions.map((division) => division.slug), ...categories.map((category) => category.slug)]);
-    return Array.from(slugs).map((slug) => ({ slug }));
-  } catch {
-    return [];
-  }
-}
-
-export const dynamicParams = true;
-
-async function getDivisionConfig(slug: string): Promise<ProductDivision | null> {
-  const configuredDivision = getProductDivision(slug);
-  if (configuredDivision) return configuredDivision;
-
-  const category = await prisma.category.findUnique({
-    where: { slug },
-    select: {
-      name: true,
-      slug: true,
-      description: true,
-      isActive: true,
-    },
-  });
-
-  if (!category?.isActive) return null;
-
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
+  const d = getProductDivision(slug);
+  if (!d) return {};
+  const base = getSiteUrl();
+  const url = `${base}/divisions/${slug}`;
   return {
-    slug: category.slug,
-    title: category.name,
-    catalogCategory: category.name,
-    blurb: category.description || `Browse ${category.name.toLowerCase()} medicines supplied by SSG Pharma.`,
-    imageSrc: marketingImages.catalog,
-    imageAlt: `${category.name} medicines catalog`,
+    title: `${d.title} medicines — wholesale & hospital supply`,
+    description: `${d.blurb} Browse ${d.title.toLowerCase()} lines from SSG Pharma — authentic medicines for hospitals and pharmacies in India.`,
+    alternates: { canonical: url },
+    openGraph: {
+      title: `${d.title} division · SSG Pharma`,
+      description: d.blurb,
+      url,
+      images: [{ url: d.imageSrc, alt: d.imageAlt }],
+    },
   };
 }
 
-async function getDivisionPageData(paramsPromise: Props["params"]) {
-  try {
-    const { slug } = await paramsPromise;
-    const division = await getDivisionConfig(slug);
-    if (!division) {
-      return null;
-    }
-
-    const items = await prisma.product.findMany({
-      where: {
-        category: {
-          is: {
-            slug: division.slug,
-          },
-        },
-      },
-      orderBy: [{ isActive: "desc" }, { name: "asc" }],
-      select: {
-        id: true,
-        slug: true,
-        name: true,
-        salts: true,
-        description: true,
-        imageUrl1: true,
-        imageUrl2: true,
-        imageUrl3: true,
-        pricePaise: true,
-        isActive: true,
-      },
-    });
-
-    return { slug, division, items };
-  } catch {
-    return null;
-  }
-}
-
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  try {
-    const { slug } = await params;
-    const d = await getDivisionConfig(slug);
-    if (!d) return {};
-    const base = getSiteUrl();
-    const url = `${base}/divisions/${slug}`;
-    return {
-      title: `${d.title} medicines — wholesale & hospital supply`,
-      description: `${d.blurb} Browse ${d.title.toLowerCase()} lines from SSG Pharma — authentic medicines for hospitals and pharmacies in India.`,
-      alternates: { canonical: url },
-      openGraph: {
-        title: `${d.title} division · SSG Pharma`,
-        description: d.blurb,
-        url,
-        images: [{ url: d.imageSrc, alt: d.imageAlt }],
-      },
-    };
-  } catch {
-    return {};
-  }
-}
-
 export default async function DivisionPage({ params }: Props) {
-  const data = await getDivisionPageData(params);
-  if (!data) {
-    notFound();
-  }
+  const { slug } = await params;
+  const division = getProductDivision(slug);
+  if (!division) notFound();
 
-  const { slug, division, items } = data;
+  const items = await prisma.product.findMany({
+    where: { salts: { contains: division.catalogCategory } },
+    orderBy: [{ isActive: "desc" }, { name: "asc" }],
+    include: { category: true },
+  });
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
@@ -132,12 +53,16 @@ export default async function DivisionPage({ params }: Props) {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script
+        id={`division-json-ld-${slug}`}
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
+      />
 
       <section className="relative w-full">
         <div className="relative mx-auto grid max-w-[1400px] gap-0 md:grid-cols-2">
           <div className="relative min-h-[280px] md:min-h-[380px]">
-            <ManagedImage
+            <Image
               src={division.imageSrc}
               alt={division.imageAlt}
               fill
@@ -173,6 +98,7 @@ export default async function DivisionPage({ params }: Props) {
             {items.length} medicine{items.length === 1 ? "" : "s"} currently tagged &ldquo;{division.catalogCategory}&rdquo;.
           </p>
         </FadeIn>
+
         <DivisionProductsList items={items} division={division} />
       </div>
     </>

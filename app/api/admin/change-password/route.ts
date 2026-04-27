@@ -1,28 +1,59 @@
 import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
-import { parseJsonBody, internalServerError } from "@/lib/api";
+import { adminPasswordMatches } from "@/lib/auth-password";
 import { prisma } from "@/lib/prisma";
-import { requireAdminApi } from "@/lib/require-admin";
-import { changePasswordSchema } from "@/lib/validators/auth";
+import { requireAdminMutation } from "@/lib/require-admin";
 
-export async function POST(request: Request): Promise<Response> {
-  const denied = await requireAdminApi();
+type ChangePasswordBody = {
+  currentPassword?: string;
+  newPassword?: string;
+};
+
+export async function POST(request: Request) {
+  const denied = await requireAdminMutation(request);
   if (denied) return denied;
 
+  let body: ChangePasswordBody;
   try {
-    const parsed = await parseJsonBody(request, changePasswordSchema);
-    if (!parsed.success) {
-      return parsed.response;
-    }
+    body = (await request.json()) as ChangePasswordBody;
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
 
-    const { currentPassword, newPassword } = parsed.data;
+  const currentPassword = body.currentPassword?.trim() ?? "";
+  const newPassword = body.newPassword?.trim() ?? "";
+
+  if (!currentPassword || !newPassword) {
+    return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+  }
+
+  if (newPassword.length < 8) {
+    return NextResponse.json({ error: "Password must be at least 8 characters" }, { status: 400 });
+  }
+
+  try {
     const admin = await prisma.adminUser.findFirst({
       where: { isActive: true },
       orderBy: { createdAt: "asc" },
     });
 
     if (!admin) {
-      return NextResponse.json({ error: "Admin user not found" }, { status: 404 });
+      const envPassword = (process.env.ADMIN_PASSWORD ?? "").trim();
+      if (!envPassword || !adminPasswordMatches(currentPassword, envPassword)) {
+        return NextResponse.json({ error: "Current password is incorrect" }, { status: 401 });
+      }
+
+      const passwordHash = await bcrypt.hash(newPassword, 12);
+      await prisma.adminUser.create({
+        data: {
+          email: "admin@medipro.local",
+          name: "Admin",
+          passwordHash,
+          role: "admin",
+        },
+      });
+
+      return NextResponse.json({ success: true });
     }
 
     const passwordOk = await bcrypt.compare(currentPassword, admin.passwordHash);
@@ -37,7 +68,8 @@ export async function POST(request: Request): Promise<Response> {
     });
 
     return NextResponse.json({ success: true });
-  } catch {
-    return internalServerError();
+  } catch (error) {
+    console.error("Error changing password:", error);
+    return NextResponse.json({ error: "Failed to change password" }, { status: 500 });
   }
 }

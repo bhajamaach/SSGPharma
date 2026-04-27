@@ -8,7 +8,10 @@ export const metadata: Metadata = {
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(13,115,119,0.10),transparent_30%),linear-gradient(180deg,#f7fbfb_0%,#f3f7f7_100%)] text-gray-900">
+    <div
+      className="admin-theme min-h-screen bg-[radial-gradient(circle_at_top,color-mix(in_oklch,var(--primary)_14%,transparent),transparent_32%),linear-gradient(180deg,color-mix(in_oklch,var(--background)_80%,white)_0%,var(--background)_100%)] text-foreground"
+      suppressHydrationWarning
+    >
       {children}
     </div>
   );

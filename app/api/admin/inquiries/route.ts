@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
-import { internalServerError } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/require-admin";
 
-export async function GET(): Promise<Response> {
+export async function GET() {
   try {
     const denied = await requireAdminApi();
     if (denied) return denied;
@@ -13,7 +12,8 @@ export async function GET(): Promise<Response> {
     });
 
     return NextResponse.json(inquiries);
-  } catch {
-    return internalServerError();
+  } catch (error) {
+    console.error("Error fetching inquiries:", error);
+    return NextResponse.json({ error: "Failed to fetch inquiries" }, { status: 500 });
   }
 }

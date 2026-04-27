@@ -2,85 +2,92 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
 import { MessageCircle, X, Phone, Mail } from "lucide-react";
 import { formatMailtoHref, formatPhoneHref } from "@/lib/contact-config";
 
 type FloatingInquiryProps = {
-  primaryPhone?: string;
-  primaryEmail?: string;
+  primaryPhone: string;
+  primaryEmail: string;
 };
 
 export function FloatingInquiry({ primaryPhone, primaryEmail }: FloatingInquiryProps) {
   const [open, setOpen] = useState(false);
 
+  const actions = [
+    {
+      label: "Get a Quote",
+      href: "/get-a-quote",
+      icon: MessageCircle,
+    },
+    {
+      label: "Call",
+      href: formatPhoneHref(primaryPhone),
+      icon: Phone,
+    },
+    {
+      label: "Email",
+      href: formatMailtoHref(primaryEmail),
+      icon: Mail,
+    },
+  ];
+
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen((current) => !current)}
-        className="fixed bottom-4 right-4 z-40 flex size-13 items-center justify-center rounded-full bg-primary text-white shadow-lg transition-all hover:scale-[1.03] hover:shadow-xl active:scale-95 sm:bottom-5 sm:right-5 md:bottom-6 md:right-6 md:size-16"
+      <motion.button
+        onClick={() => setOpen(!open)}
+        className="fixed bottom-6 right-6 z-40 flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-all hover:shadow-xl active:scale-95 md:size-14"
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.95 }}
         aria-expanded={open}
-        aria-label={open ? "Close quick contact menu" : "Open quick contact menu"}
+        aria-label={open ? "Close contact menu" : "Open contact menu"}
       >
         {open ? <X className="size-6" /> : <MessageCircle className="size-6" />}
-      </button>
+      </motion.button>
 
-      {open ? (
-        <div className="fixed bottom-20 left-3 right-3 z-40 rounded-2xl border-2 border-border bg-card/95 backdrop-blur shadow-2xl sm:bottom-24 sm:left-auto sm:right-4 sm:w-[min(22rem,calc(100vw-2rem))] md:bottom-28 md:right-8">
-          <div className="border-b border-border/50 px-4 py-3">
-            <p className="text-sm font-semibold text-foreground">Quick contact</p>
-            <p className="text-xs text-muted-foreground">Choose the fastest way to reach the team.</p>
-          </div>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            className="fixed bottom-20 right-6 z-40 w-56 rounded-xl border border-border bg-card/95 p-2 shadow-2xl backdrop-blur md:bottom-24 md:right-8"
+            initial={{ opacity: 0, scale: 0.8, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: 20 }}
+            transition={{ duration: 0.2 }}
+          >
+            <div className="space-y-1">
+              {actions.map((action) => {
+                const Icon = action.icon;
 
-          <div className="space-y-3 p-4">
-            <Link
-              href="/get-a-quote"
-              onClick={() => setOpen(false)}
-              className="flex w-full items-center gap-3 rounded-lg border border-border/50 bg-background p-3 transition-all hover:bg-muted focus-visible:bg-muted"
-            >
-              <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10">
-                <MessageCircle className="size-4 text-primary" />
-              </div>
-              <div className="text-left">
-                <p className="text-sm font-medium text-foreground">Get a Quote</p>
-                <p className="text-xs text-muted-foreground">Share your requirement list</p>
-              </div>
-            </Link>
+                if (action.href.startsWith("/")) {
+                  return (
+                    <Link
+                      key={action.label}
+                      href={action.href}
+                      onClick={() => setOpen(false)}
+                      className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted focus-visible:bg-muted"
+                    >
+                      <Icon className="size-4 text-primary" />
+                      <span>{action.label}</span>
+                    </Link>
+                  );
+                }
 
-            {primaryPhone ? (
-              <a
-                href={formatPhoneHref(primaryPhone)}
-                onClick={() => setOpen(false)}
-                className="flex w-full items-center gap-3 rounded-lg border border-border/50 bg-background p-3 transition-all hover:bg-muted focus-visible:bg-muted"
-              >
-                <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10">
-                  <Phone className="size-4 text-primary" />
-                </div>
-                <div className="text-left">
-                  <p className="text-sm font-medium text-foreground">Call</p>
-                  <p className="text-xs text-muted-foreground">Speak with the procurement desk</p>
-                </div>
-              </a>
-            ) : null}
-
-            {primaryEmail ? (
-              <a
-                href={formatMailtoHref(primaryEmail)}
-                onClick={() => setOpen(false)}
-                className="flex w-full items-center gap-3 rounded-lg border border-border/50 bg-background p-3 transition-all hover:bg-muted focus-visible:bg-muted"
-              >
-                <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10">
-                  <Mail className="size-4 text-primary" />
-                </div>
-                <div className="text-left">
-                  <p className="text-sm font-medium text-foreground">Email</p>
-                  <p className="text-xs text-muted-foreground">Send details for a written reply</p>
-                </div>
-              </a>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
+                return (
+                  <a
+                    key={action.label}
+                    href={action.href}
+                    onClick={() => setOpen(false)}
+                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted focus-visible:bg-muted"
+                  >
+                    <Icon className="size-4 text-primary" />
+                    <span>{action.label}</span>
+                  </a>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }
