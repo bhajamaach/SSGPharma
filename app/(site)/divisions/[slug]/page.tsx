@@ -37,7 +37,13 @@ export default async function DivisionPage({ params }: Props) {
   if (!division) notFound();
 
   const items = await prisma.product.findMany({
-    where: { salts: { contains: division.catalogCategory } },
+    where: {
+      category: {
+        is: {
+          OR: [{ slug: division.slug }, { name: division.catalogCategory }],
+        },
+      },
+    },
     orderBy: [{ isActive: "desc" }, { name: "asc" }],
     include: { category: true },
   });

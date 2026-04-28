@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { requireAdminApi, requireAdminMutation } from "@/lib/require-admin";
-import { parseJsonBody } from "@/lib/api";
+import { mutationErrorResponse, parseJsonBody } from "@/lib/api";
 import { productDivisions } from "@/lib/divisions";
 import { prisma } from "@/lib/prisma";
 import { updateProductSchema } from "@/lib/validators/product";
@@ -72,6 +72,8 @@ export async function PATCH(
       categoryId,
       moleculeIds,
       mrpPaise,
+      priceSuffix,
+      mrpSuffix,
       imageUrl1,
       imageUrl2,
       imageUrl3,
@@ -96,6 +98,8 @@ export async function PATCH(
         data: {
           ...productData,
           mrpPaise: mrpPaise ?? null,
+          priceSuffix: priceSuffix ?? null,
+          mrpSuffix: mrpSuffix ?? null,
           imageUrl1: imageUrl1 ?? null,
           imageUrl2: imageUrl2 ?? null,
           imageUrl3: imageUrl3 ?? null,
@@ -147,10 +151,7 @@ export async function PATCH(
     return NextResponse.json(product);
   } catch (error) {
     console.error("Error updating product:", error);
-    return NextResponse.json(
-      { error: "Failed to update product" },
-      { status: 500 }
-    );
+    return mutationErrorResponse(error, "Failed to update product");
   }
 }
 
@@ -184,9 +185,6 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error deleting product:", error);
-    return NextResponse.json(
-      { error: "Failed to delete product" },
-      { status: 500 }
-    );
+    return mutationErrorResponse(error, "Failed to delete product");
   }
 }

@@ -10,15 +10,31 @@ export async function requireAdminApi() {
 }
 
 export function verifySameOrigin(request: Request) {
-  const origin = request.headers.get("origin");
-  const host = request.headers.get("host");
-  if (!origin || !host) {
+  const originHeader = request.headers.get("origin") ?? request.headers.get("referer");
+  const requestHosts = new Set(
+    [
+      request.headers.get("x-forwarded-host"),
+      request.headers.get("host"),
+      (() => {
+        try {
+          return process.env.NEXT_PUBLIC_SITE_URL ? new URL(process.env.NEXT_PUBLIC_SITE_URL).host : null;
+        } catch {
+          return null;
+        }
+      })(),
+    ]
+      .flatMap((value) => value?.split(",") ?? [])
+      .map((value) => value.trim().toLowerCase())
+      .filter(Boolean),
+  );
+
+  if (!originHeader || requestHosts.size === 0) {
     return false;
   }
 
   try {
-    const originUrl = new URL(origin);
-    return originUrl.host === host;
+    const originUrl = new URL(originHeader);
+    return requestHosts.has(originUrl.host.toLowerCase());
   } catch {
     return false;
   }

@@ -45,6 +45,7 @@ async function getHomepageProducts() {
         dosage: true,
         description: true,
         pricePaise: true,
+        priceSuffix: true,
         category: {
           select: {
             name: true,

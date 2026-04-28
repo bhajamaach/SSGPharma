@@ -221,6 +221,10 @@ export function formatPhoneHref(phone: string) {
   return `tel:${phone.replace(/[^\d+]/g, "")}`;
 }
 
+export function formatWhatsAppHref(phone: string) {
+  return `https://wa.me/${phone.replace(/\D/g, "")}`;
+}
+
 export function formatMailtoHref(email: string) {
   return `mailto:${email}`;
 }

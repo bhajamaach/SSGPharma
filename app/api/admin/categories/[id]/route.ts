@@ -1,10 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { requireAdminApi, requireAdminMutation } from "@/lib/require-admin";
-import { parseJsonBody } from "@/lib/api";
+import { mutationErrorResponse, parseJsonBody } from "@/lib/api";
+import { productDivisions } from "@/lib/divisions";
 import { prisma } from "@/lib/prisma";
 import { updateCategorySchema } from "@/lib/validators/category";
 
 type RouteContext = { params: Promise<{ id: string }> };
+
+function revalidateCatalogPaths(productSlugs: string[] = []) {
+  revalidatePath("/products");
+  for (const division of productDivisions) {
+    revalidatePath(`/divisions/${division.slug}`);
+  }
+  for (const slug of new Set(productSlugs)) {
+    revalidatePath(`/products/${slug}`);
+  }
+}
 
 export async function GET(
   req: NextRequest,
@@ -50,19 +62,28 @@ export async function PATCH(
     const parsed = await parseJsonBody(req, updateCategorySchema);
     if (!parsed.success) return parsed.response;
     const validated = parsed.data;
+    const existing = await prisma.category.findUnique({
+      where: { id },
+      select: {
+        products: {
+          select: {
+            slug: true,
+          },
+        },
+      },
+    });
 
     const category = await prisma.category.update({
       where: { id },
       data: validated,
     });
 
+    revalidateCatalogPaths(existing?.products.map((product) => product.slug) ?? []);
+
     return NextResponse.json(category);
   } catch (error) {
     console.error("Error updating category:", error);
-    return NextResponse.json(
-      { error: "Failed to update category" },
-      { status: 500 }
-    );
+    return mutationErrorResponse(error, "Failed to update category");
   }
 }
 
@@ -75,16 +96,26 @@ export async function DELETE(
   const { id } = await params;
 
   try {
+    const existing = await prisma.category.findUnique({
+      where: { id },
+      select: {
+        products: {
+          select: {
+            slug: true,
+          },
+        },
+      },
+    });
+
     await prisma.category.delete({
       where: { id },
     });
 
+    revalidateCatalogPaths(existing?.products.map((product) => product.slug) ?? []);
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error deleting category:", error);
-    return NextResponse.json(
-      { error: "Failed to delete category" },
-      { status: 500 }
-    );
+    return mutationErrorResponse(error, "Failed to delete category");
   }
 }

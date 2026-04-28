@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const imageReferenceSchema = z.string().trim().min(1, "Image reference cannot be empty").max(2000000, "Image reference is too long");
+const imageReferenceSchema = z.string().trim().min(1, "Image reference cannot be empty").max(10000000, "Image reference is too long");
 const nullableImageReferenceSchema = z.preprocess((value) => {
   if (typeof value === "string" && value.trim() === "") {
     return null;
@@ -17,6 +17,8 @@ export const createProductSchema = z.object({
   isActive: z.boolean().default(true),
   pricePaise: z.number().int().min(0, "Price must be non-negative"),
   mrpPaise: z.number().int().min(0).optional().nullable(),
+  priceSuffix: z.string().trim().max(50, "Suffix is too long").optional().nullable(),
+  mrpSuffix: z.string().trim().max(50, "Suffix is too long").optional().nullable(),
   dosage: z.string().trim().max(120, "Dosage is too long").optional(),
   packSize: z.string().trim().max(120, "Pack size is too long").optional(),
   salts: z.string().trim().max(4000, "Salts field is too long").optional(),

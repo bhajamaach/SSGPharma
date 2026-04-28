@@ -1,8 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { requireAdminApi, requireAdminMutation } from "@/lib/require-admin";
-import { parseJsonBody } from "@/lib/api";
+import { mutationErrorResponse, parseJsonBody } from "@/lib/api";
+import { productDivisions } from "@/lib/divisions";
 import { prisma } from "@/lib/prisma";
 import { createCategorySchema } from "@/lib/validators/category";
+
+function revalidateCatalogPaths(productSlugs: string[] = []) {
+  revalidatePath("/products");
+  for (const division of productDivisions) {
+    revalidatePath(`/divisions/${division.slug}`);
+  }
+  for (const slug of new Set(productSlugs)) {
+    revalidatePath(`/products/${slug}`);
+  }
+}
 
 export async function GET() {
   const adminCheck = await requireAdminApi();
@@ -41,12 +53,11 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    revalidateCatalogPaths();
+
     return NextResponse.json(category, { status: 201 });
   } catch (error) {
     console.error("Error creating category:", error);
-    return NextResponse.json(
-      { error: "Failed to create category" },
-      { status: 500 }
-    );
+    return mutationErrorResponse(error, "Failed to create category");
   }
 }

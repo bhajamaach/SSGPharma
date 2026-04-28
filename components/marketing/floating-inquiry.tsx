@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { MessageCircle, X, Phone, Mail } from "lucide-react";
-import { formatMailtoHref, formatPhoneHref } from "@/lib/contact-config";
+import { formatMailtoHref, formatPhoneHref, formatWhatsAppHref } from "@/lib/contact-config";
 
 type FloatingInquiryProps = {
   primaryPhone: string;
@@ -24,13 +24,23 @@ export function FloatingInquiry({ primaryPhone, primaryEmail }: FloatingInquiryP
       label: "Call",
       href: formatPhoneHref(primaryPhone),
       icon: Phone,
+      enabled: Boolean(primaryPhone),
+    },
+    {
+      label: "WhatsApp Us",
+      href: formatWhatsAppHref(primaryPhone),
+      icon: MessageCircle,
+      enabled: Boolean(primaryPhone),
+      target: "_blank" as const,
+      rel: "noreferrer",
     },
     {
       label: "Email",
       href: formatMailtoHref(primaryEmail),
       icon: Mail,
+      enabled: Boolean(primaryEmail),
     },
-  ];
+  ].filter((action) => action.enabled);
 
   return (
     <>
@@ -77,6 +87,8 @@ export function FloatingInquiry({ primaryPhone, primaryEmail }: FloatingInquiryP
                     key={action.label}
                     href={action.href}
                     onClick={() => setOpen(false)}
+                    target={action.target}
+                    rel={action.rel}
                     className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted focus-visible:bg-muted"
                   >
                     <Icon className="size-4 text-primary" />

@@ -6,7 +6,7 @@ import { Star } from "lucide-react";
 
 const testimonials = [
   {
-    quote: "We've been with MediPro for 3 years now. When a patient is on the bed and we're out of stock, they actually answer. Not many suppliers can say that.",
+    quote: "We've been with SSGPharma for 3 years now. When a patient is on the bed and we're out of stock, they actually answer. Not many suppliers can say that.",
     author: "Dr. Rajesh Kumar",
     role: "Head of Pharmacy, Metro Hospital Delhi",
     rating: 5,
@@ -18,13 +18,13 @@ const testimonials = [
     rating: 5,
   },
   {
-    quote: "Went from 4 suppliers to MediPro for 70% of our cold-chain needs. The documentation is audit-ready and their team is responsive.",
+    quote: "Went from 4 suppliers to SSGPharma for 70% of our cold-chain needs. The documentation is audit-ready and their team is responsive.",
     author: "Arun Gupta",
     role: "Supply Chain, Regional Pharmacy Chain",
     rating: 5,
   },
   {
-    quote: "Specialty medicines are hard to source. MediPro got us a molecule we'd been chasing for 2 months in 48 hours. Worth every call.",
+    quote: "Specialty medicines are hard to source. SSGPharma got us a molecule we'd been chasing for 2 months in 48 hours. Worth every call.",
     author: "Dr. Neha Patel",
     role: "Clinical Director, Nephrology Center",
     rating: 5,

@@ -1,5 +1,3 @@
-import { marketingImages } from "@/lib/marketing-images";
-
 /** Use these exact `catalogCategory` strings when tagging medicines in admin so division pages filter correctly. */
 export type ProductDivision = {
   slug: string;
@@ -16,7 +14,7 @@ export const productDivisions: ProductDivision[] = [
     title: "Oncology",
     catalogCategory: "Oncology",
     blurb: "Chemotherapy, targeted therapy, and supportive care lines for oncology wards.",
-    imageSrc: marketingImages.research,
+    imageSrc: "/oncology-bg.jpeg",
     imageAlt: "Laboratory research setting relevant to oncology drug supply",
   },
   {
@@ -24,7 +22,7 @@ export const productDivisions: ProductDivision[] = [
     title: "Rheumatology",
     catalogCategory: "Rheumatology",
     blurb: "DMARDs, biologics, and pain management for rheumatology clinics.",
-    imageSrc: marketingImages.consultation,
+    imageSrc: "/rheumatology-bg.jpeg",
     imageAlt: "Clinical consultation — rheumatology and chronic care",
   },
   {
@@ -32,7 +30,7 @@ export const productDivisions: ProductDivision[] = [
     title: "Diabetes",
     catalogCategory: "Diabetes",
     blurb: "Oral antidiabetics, insulins, and GLP-1 lines with predictable replenishment.",
-    imageSrc: marketingImages.packaging,
+    imageSrc: "/diabetics-bg.jpeg",
     imageAlt: "Pharmaceutical packaging and diabetes care products",
   },
   {
@@ -40,7 +38,7 @@ export const productDivisions: ProductDivision[] = [
     title: "Nephrology",
     catalogCategory: "Nephrology",
     blurb: "Dialysis adjuncts, renal therapies, and electrolyte management.",
-    imageSrc: marketingImages.heroLab,
+    imageSrc: "/nephrology-bg.jpeg",
     imageAlt: "Pharmacy shelf with medicines — nephrology supply",
   },
   {
@@ -48,7 +46,7 @@ export const productDivisions: ProductDivision[] = [
     title: "Antibiotics",
     catalogCategory: "Antibiotics",
     blurb: "Broad and narrow spectrum antibiotics for IPD and emergency use.",
-    imageSrc: marketingImages.catalog,
+    imageSrc: "/antibiotics-bg.jpeg",
     imageAlt: "Medicine bottles and catalog — antibiotics division",
   },
   {
@@ -56,13 +54,30 @@ export const productDivisions: ProductDivision[] = [
     title: "Vaccines",
     catalogCategory: "Vaccines",
     blurb: "Cold-chain aware vaccine supply for institutions and outreach programs.",
-    imageSrc: marketingImages.consultation,
+    imageSrc: "/vacc.jpeg",
     imageAlt: "Healthcare professional — immunization programs",
   },
 ];
 
-export function getProductDivision(slug: string) {
-  return productDivisions.find((d) => d.slug === slug);
+function normalizeDivisionIdentifier(value: string) {
+  return value.trim().toLowerCase();
+}
+
+export function getProductDivision(identifier: string | null | undefined) {
+  if (!identifier) return undefined;
+
+  const normalized = normalizeDivisionIdentifier(identifier);
+  return productDivisions.find(
+    (division) =>
+      normalizeDivisionIdentifier(division.slug) === normalized ||
+      normalizeDivisionIdentifier(division.catalogCategory) === normalized,
+  );
+}
+
+export function getProductDivisionForCategory(category: { slug?: string | null; name?: string | null } | null | undefined) {
+  if (!category) return undefined;
+
+  return getProductDivision(category.slug) ?? getProductDivision(category.name);
 }
 
 export const serviceLines = [

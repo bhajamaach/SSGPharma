@@ -14,7 +14,10 @@ if [[ "$DATABASE_URL" == file:* ]]; then
   if [[ -n "$db_dir" && "$db_dir" != "." ]]; then
     mkdir -p "$db_dir"
   fi
+
+  touch "$db_path"
 fi
 
-pnpm exec prisma migrate deploy
+echo "Applying Prisma migrations for $DATABASE_URL"
+pnpm exec prisma migrate deploy --schema prisma/schema.prisma
 exec node .next/standalone/server.js

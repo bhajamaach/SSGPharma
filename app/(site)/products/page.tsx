@@ -24,7 +24,15 @@ async function getProductsPageData(searchParamsPromise: Props["searchParams"]) {
     const items = await prisma.product
       .findMany({
         where: {
-          ...(division ? { category: { is: { slug: division.slug } } } : {}),
+          ...(division
+            ? {
+                category: {
+                  is: {
+                    OR: [{ slug: division.slug }, { name: division.catalogCategory }],
+                  },
+                },
+              }
+            : {}),
           ...(normalizedQuery
             ? {
                 OR: [
@@ -49,6 +57,7 @@ async function getProductsPageData(searchParamsPromise: Props["searchParams"]) {
           imageUrl3: true,
           isActive: true,
           pricePaise: true,
+          priceSuffix: true,
           category: {
             select: {
               id: true,

@@ -14,6 +14,7 @@ type ProductItem = {
   dosage?: string | null;
   description?: string | null;
   pricePaise: number;
+  priceSuffix?: string | null;
   category?: { name: string; slug: string } | null;
 };
 
@@ -88,7 +89,10 @@ export function HomepageSearchSection({ products }: Props) {
                             "Pharmaceutical product"}
                         </p>
                       </div>
-                      <p className="font-semibold text-primary whitespace-nowrap">{formatPrice(product.pricePaise)}</p>
+                      <p className="font-semibold text-primary whitespace-nowrap">
+                        {formatPrice(product.pricePaise)}
+                        {product.priceSuffix ? ` ${product.priceSuffix}` : ""}
+                      </p>
                     </Link>
                   ))}
                 </div>

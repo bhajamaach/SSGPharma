@@ -16,6 +16,7 @@ import { formatInrFromPaise } from "@/lib/money";
 import { marketingImages } from "@/lib/marketing-images";
 import { prisma } from "@/lib/prisma";
 import { getSiteUrl } from "@/lib/site-url";
+import { getProductDivisionForCategory } from "@/lib/divisions";
 import { cn } from "@/lib/utils";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -104,7 +105,7 @@ function ProductShelfCard({
         </div>
         {product.description ? <p className="text-sm leading-relaxed text-muted-foreground">{summarizeText(product.description, 120)}</p> : null}
         <div className="flex items-center justify-between gap-3">
-          <p className="font-semibold text-foreground">{formatInrFromPaise(product.pricePaise)}</p>
+          <p className="font-semibold text-foreground">{formatInrFromPaise(product.pricePaise)}{product.priceSuffix ? ` ${product.priceSuffix}` : ""}</p>
           <Link href={`/products/${product.slug}`} className="text-sm font-medium text-primary hover:underline">
             View details
           </Link>
@@ -213,6 +214,7 @@ export default async function ProductDetailPage({ params }: Props) {
   const faqs = parseFaqText(product.faqs);
   const faqSchemaItems = faqs.filter((faq) => faq.answer);
   const productTokens = getProductMatchTokens(product);
+  const productDivision = getProductDivisionForCategory(product.category);
 
   const alternatives = otherProducts
     .filter((candidate) => {
@@ -291,7 +293,7 @@ export default async function ProductDetailPage({ params }: Props) {
             "@type": "ListItem",
             position: 3,
             name: product.category.name,
-            item: `${siteUrl}/products?division=${product.category.slug}`,
+            item: `${siteUrl}/products?division=${productDivision?.slug ?? product.category.slug}`,
           }
         : null,
       {
@@ -347,7 +349,9 @@ export default async function ProductDetailPage({ params }: Props) {
                 crumbs={[
                   { label: "Home", href: "/" },
                   { label: "Products", href: "/products" },
-                  ...(product.category ? [{ label: product.category.name, href: `/products?division=${product.category.slug}` }] : []),
+                  ...(product.category && productDivision
+                    ? [{ label: product.category.name, href: `/products?division=${productDivision.slug}` }]
+                    : []),
                   { label: product.name },
                 ]}
               />
@@ -394,11 +398,11 @@ export default async function ProductDetailPage({ params }: Props) {
               <div className="flex flex-wrap items-end gap-5">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Price</p>
-                  <p className="mt-2 text-4xl font-semibold tracking-tight text-foreground">{formatInrFromPaise(product.pricePaise)}</p>
+                  <p className="mt-2 text-4xl font-semibold tracking-tight text-foreground">{formatInrFromPaise(product.pricePaise)}{product.priceSuffix ? ` ${product.priceSuffix}` : ""}</p>
                 </div>
                 {product.mrpPaise ? (
                   <div className="pb-1">
-                    <p className="text-sm text-muted-foreground line-through">{formatInrFromPaise(product.mrpPaise)}</p>
+                    <p className="text-sm text-muted-foreground line-through">{formatInrFromPaise(product.mrpPaise)}{product.mrpSuffix ? ` ${product.mrpSuffix}` : ""}</p>
                     {savingsPercent ? (
                       <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">Save {savingsPercent}% off MRP</p>
                     ) : null}
@@ -469,8 +473,8 @@ export default async function ProductDetailPage({ params }: Props) {
               <h2 className="font-(family-name:--font-display) text-3xl text-foreground">Product Info</h2>
               <dl className="mt-5 space-y-4 text-sm">
                 {[
-                  ["Price", formatInrFromPaise(product.pricePaise)],
-                  ["MRP", product.mrpPaise ? formatInrFromPaise(product.mrpPaise) : "Not listed"],
+                  ["Price", `${formatInrFromPaise(product.pricePaise)}${product.priceSuffix ? ` ${product.priceSuffix}` : ""}`],
+                  ["MRP", product.mrpPaise ? `${formatInrFromPaise(product.mrpPaise)}${product.mrpSuffix ? ` ${product.mrpSuffix}` : ""}` : "Not listed"],
                   ["Dosage", product.dosage || "Not listed"],
                   ["Pack Size", product.packSize || "Not listed"],
                   ["Manufacturer", product.manufacturer || "Not listed"],
@@ -635,8 +639,8 @@ export default async function ProductDetailPage({ params }: Props) {
                   </h2>
                   <p className="mt-2 text-sm text-muted-foreground">Explore other products from the same category.</p>
                 </div>
-                {product.category ? (
-                  <Link href={`/products?division=${product.category.slug}`} className="text-sm font-medium text-primary hover:underline">
+                {product.category && productDivision ? (
+                  <Link href={`/products?division=${productDivision.slug}`} className="text-sm font-medium text-primary hover:underline">
                     View all {product.category.name}
                   </Link>
                 ) : null}

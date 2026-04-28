@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { requireAdminApi, requireAdminMutation } from "@/lib/require-admin";
-import { parseJsonBody } from "@/lib/api";
+import { mutationErrorResponse, parseJsonBody } from "@/lib/api";
 import { productDivisions } from "@/lib/divisions";
 import { prisma } from "@/lib/prisma";
 import { createProductSchema } from "@/lib/validators/product";
@@ -51,40 +51,35 @@ export async function POST(req: NextRequest) {
     const parsed = await parseJsonBody(req, createProductSchema);
     if (!parsed.success) return parsed.response;
     const validated = parsed.data;
+    const {
+      categoryId,
+      moleculeIds,
+      ...productData
+    } = validated;
 
     const product = await prisma.$transaction(async (tx) => {
       const created = await tx.product.create({
         data: {
-          name: validated.name,
-          slug: validated.slug,
-          categoryId: validated.categoryId ?? null,
-          manufacturer: validated.manufacturer,
-          isActive: validated.isActive,
-          pricePaise: validated.pricePaise,
+          ...productData,
           mrpPaise: validated.mrpPaise ?? null,
-          dosage: validated.dosage,
-          packSize: validated.packSize,
-          salts: validated.salts,
-          description: validated.description,
-          keyBenefits: validated.keyBenefits,
-          goodToKnow: validated.goodToKnow,
-          dietType: validated.dietType,
-          productForm: validated.productForm,
-          allergiesInformation: validated.allergiesInformation,
-          directionForUse: validated.directionForUse,
-          safetyInformation: validated.safetyInformation,
-          schema: validated.schema,
-          specialBenefitSchemes: validated.specialBenefitSchemes,
-          faqs: validated.faqs,
+          priceSuffix: validated.priceSuffix ?? null,
+          mrpSuffix: validated.mrpSuffix ?? null,
           imageUrl1: validated.imageUrl1 ?? null,
           imageUrl2: validated.imageUrl2 ?? null,
           imageUrl3: validated.imageUrl3 ?? null,
+          ...(categoryId
+            ? {
+                category: {
+                  connect: { id: categoryId },
+                },
+              }
+            : {}),
         },
       });
 
-      if (validated.moleculeIds && validated.moleculeIds.length > 0) {
+      if (moleculeIds && moleculeIds.length > 0) {
         await tx.productMolecule.createMany({
-          data: validated.moleculeIds.map((moleculeId) => ({
+          data: moleculeIds.map((moleculeId) => ({
             productId: created.id,
             moleculeId,
           })),
@@ -109,9 +104,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(product, { status: 201 });
   } catch (error) {
     console.error("Error creating product:", error);
-    return NextResponse.json(
-      { error: "Failed to create product" },
-      { status: 500 }
-    );
+    return mutationErrorResponse(error, "Failed to create product");
   }
 }

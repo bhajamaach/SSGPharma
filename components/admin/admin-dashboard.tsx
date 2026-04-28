@@ -1,6 +1,7 @@
 "use client";
 
 import type { ChangeEvent, FormEvent, ReactNode } from "react";
+import { Fragment } from "react";
 import { startTransition, useDeferredValue, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -60,6 +61,8 @@ type ProductRecord = {
   isActive: boolean;
   pricePaise: number;
   mrpPaise: number | null;
+  priceSuffix: string | null;
+  mrpSuffix: string | null;
   dosage: string | null;
   packSize: string | null;
   salts: string | null;
@@ -118,6 +121,8 @@ type ProductFormState = {
   isActive: boolean;
   price: string;
   mrp: string;
+  priceSuffix: string;
+  mrpSuffix: string;
   dosage: string;
   packSize: string;
   salts: string;
@@ -219,6 +224,8 @@ function emptyProductForm(): ProductFormState {
     isActive: true,
     price: "",
     mrp: "",
+    priceSuffix: "",
+    mrpSuffix: "",
     dosage: "",
     packSize: "",
     salts: "",
@@ -334,6 +341,14 @@ function getImageInputValue(value: string) {
   }
 
   return value;
+}
+
+function getErrorMessage(errorBody: { error?: string; details?: { fieldErrors?: Record<string, string[] | undefined> } }, fallback: string) {
+  const fieldMessages = Object.values(errorBody.details?.fieldErrors ?? {})
+    .flat()
+    .filter((message): message is string => Boolean(message));
+
+  return fieldMessages[0] || errorBody.error || fallback;
 }
 
 async function fetchJson<T>(url: string) {
@@ -621,6 +636,8 @@ export function AdminDashboard() {
       isActive: product.isActive,
       price: paiseToInput(product.pricePaise),
       mrp: paiseToInput(product.mrpPaise),
+      priceSuffix: product.priceSuffix ?? "",
+      mrpSuffix: product.mrpSuffix ?? "",
       dosage: product.dosage ?? "",
       packSize: product.packSize ?? "",
       salts: product.salts ?? "",
@@ -759,6 +776,8 @@ export function AdminDashboard() {
       isActive: productForm.isActive,
       pricePaise: inputToPaise(productForm.price),
       mrpPaise: productForm.mrp.trim() ? inputToPaise(productForm.mrp) : null,
+      priceSuffix: productForm.priceSuffix.trim() || null,
+      mrpSuffix: productForm.mrpSuffix.trim() || null,
       dosage: productForm.dosage.trim() || undefined,
       packSize: productForm.packSize.trim() || undefined,
       salts: productForm.salts.trim() || undefined,
@@ -792,10 +811,7 @@ export function AdminDashboard() {
             fieldErrors?: Record<string, string[] | undefined>;
           };
         };
-        const fieldMessages = Object.values(errorBody.details?.fieldErrors ?? {})
-          .flat()
-          .filter((message): message is string => Boolean(message));
-        throw new Error(fieldMessages[0] || errorBody.error || "Could not save product.");
+        throw new Error(getErrorMessage(errorBody, "Could not save product."));
       }
 
       const saved = (await response.json()) as ProductRecord;
@@ -868,8 +884,11 @@ export function AdminDashboard() {
       if (!response.ok) {
         const errorBody = (await response.json().catch(() => ({ error: "Could not save molecule." }))) as {
           error?: string;
+          details?: {
+            fieldErrors?: Record<string, string[] | undefined>;
+          };
         };
-        throw new Error(errorBody.error || "Could not save molecule.");
+        throw new Error(getErrorMessage(errorBody, "Could not save molecule."));
       }
 
       const saved = (await response.json()) as MoleculeRecord;
@@ -963,6 +982,80 @@ export function AdminDashboard() {
       });
     } finally {
       setCategorySaving(false);
+    }
+  }
+
+  async function deleteProduct(id: string, name: string) {
+    if (!window.confirm(`Delete ${name}?`)) return;
+
+    setProductSaving(true);
+    setProductBanner(null);
+
+    try {
+      const response = await fetch(`/api/admin/products/${id}`, {
+        method: "DELETE",
+        credentials: "same-origin",
+      });
+
+      if (!response.ok) {
+        const errorBody = (await response.json().catch(() => ({ error: "Could not delete product." }))) as {
+          error?: string;
+        };
+        throw new Error(errorBody.error || "Could not delete product.");
+      }
+
+      await loadProducts();
+      if (editingProduct?.id === id) {
+        startTransition(() => {
+          setProductsView("list");
+          setEditingProduct(null);
+        });
+      }
+      setProductBanner({ type: "success", text: "Product deleted." });
+    } catch (error) {
+      setProductBanner({
+        type: "error",
+        text: error instanceof Error ? error.message : "Could not delete product.",
+      });
+    } finally {
+      setProductSaving(false);
+    }
+  }
+
+  async function deleteMolecule(id: string, name: string) {
+    if (!window.confirm(`Delete ${name}?`)) return;
+
+    setMoleculeSaving(true);
+    setMoleculeBanner(null);
+
+    try {
+      const response = await fetch(`/api/admin/molecules/${id}`, {
+        method: "DELETE",
+        credentials: "same-origin",
+      });
+
+      if (!response.ok) {
+        const errorBody = (await response.json().catch(() => ({ error: "Could not delete molecule." }))) as {
+          error?: string;
+        };
+        throw new Error(errorBody.error || "Could not delete molecule.");
+      }
+
+      await loadMolecules();
+      if (editingMolecule?.id === id) {
+        startTransition(() => {
+          setMoleculesView("list");
+          setEditingMolecule(null);
+        });
+      }
+      setMoleculeBanner({ type: "success", text: "Molecule deleted." });
+    } catch (error) {
+      setMoleculeBanner({
+        type: "error",
+        text: error instanceof Error ? error.message : "Could not delete molecule.",
+      });
+    } finally {
+      setMoleculeSaving(false);
     }
   }
 
@@ -1261,6 +1354,7 @@ export function AdminDashboard() {
                           <th className="px-6 py-4">Name</th>
                           <th className="px-6 py-4">Slug</th>
                           <th className="px-6 py-4">Category</th>
+                          <th className="px-6 py-4 text-right">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
@@ -1281,6 +1375,24 @@ export function AdminDashboard() {
                             <td className="px-6 py-4 font-medium text-gray-900">{product.name}</td>
                             <td className="px-6 py-4 text-sm text-gray-600">{product.slug}</td>
                             <td className="px-6 py-4 text-sm text-gray-600">{product.category?.name ?? "Uncategorized"}</td>
+                            <td className="px-6 py-4">
+                              <div className="flex justify-end">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  className="border-gray-300"
+                                  onKeyDown={(event) => event.stopPropagation()}
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    void deleteProduct(product.id, product.name);
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                  Delete
+                                </Button>
+                              </div>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -1336,6 +1448,18 @@ export function AdminDashboard() {
                         View on site
                       </Link>
                     </Button>
+                    {editingProduct ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="border-red-200 text-red-600 hover:border-red-300 hover:bg-red-50 hover:text-red-700"
+                        onClick={() => void deleteProduct(editingProduct.id, editingProduct.name)}
+                        disabled={productSaving}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Delete
+                      </Button>
+                    ) : null}
                   </div>
                 </div>
 
@@ -1424,29 +1548,49 @@ export function AdminDashboard() {
                       <label htmlFor="product-price" className="text-sm font-medium text-gray-700">
                         Price
                       </label>
-                      <Input
-                        id="product-price"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={productForm.price}
-                        onChange={(event) => setProductForm((current) => ({ ...current, price: event.target.value }))}
-                        className={fieldClassName}
-                      />
+                      <div className="flex gap-2">
+                        <Input
+                          id="product-price"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={productForm.price}
+                          onChange={(event) => setProductForm((current) => ({ ...current, price: event.target.value }))}
+                          className={fieldClassName}
+                        />
+                        <Input
+                          id="product-price-suffix"
+                          placeholder="/vial"
+                          value={productForm.priceSuffix}
+                          onChange={(event) => setProductForm((current) => ({ ...current, priceSuffix: event.target.value }))}
+                          className={fieldClassName}
+                        />
+                      </div>
+                      <p className="text-xs text-gray-500">Optional suffix (e.g., /vial, /bottle, /strip)</p>
                     </div>
                     <div className="space-y-2">
                       <label htmlFor="product-mrp" className="text-sm font-medium text-gray-700">
                         MRP
                       </label>
-                      <Input
-                        id="product-mrp"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={productForm.mrp}
-                        onChange={(event) => setProductForm((current) => ({ ...current, mrp: event.target.value }))}
-                        className={fieldClassName}
-                      />
+                      <div className="flex gap-2">
+                        <Input
+                          id="product-mrp"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={productForm.mrp}
+                          onChange={(event) => setProductForm((current) => ({ ...current, mrp: event.target.value }))}
+                          className={fieldClassName}
+                        />
+                        <Input
+                          id="product-mrp-suffix"
+                          placeholder="/vial"
+                          value={productForm.mrpSuffix}
+                          onChange={(event) => setProductForm((current) => ({ ...current, mrpSuffix: event.target.value }))}
+                          className={fieldClassName}
+                        />
+                      </div>
+                      <p className="text-xs text-gray-500">Optional suffix (e.g., /vial, /bottle, /strip)</p>
                     </div>
                     <div className="space-y-2">
                       <label htmlFor="product-dosage" className="text-sm font-medium text-gray-700">
@@ -1720,16 +1864,17 @@ export function AdminDashboard() {
                     ) : filteredMolecules.length === 0 ? (
                       <EmptyState icon={FlaskConical} title="No molecules found" description="Adjust the search or filter settings, or add a new molecule record." />
                     ) : (
-                      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                        <table className="min-w-full divide-y divide-gray-200">
-                          <thead className="bg-gray-50">
-                            <tr className="text-left text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
-                              <th className="px-6 py-4">Name</th>
-                              <th className="px-6 py-4">Slug</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-100">
-                            {filteredMolecules.map((molecule) => (
+                  <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr className="text-left text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
+                          <th className="px-6 py-4">Name</th>
+                          <th className="px-6 py-4">Slug</th>
+                          <th className="px-6 py-4 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {filteredMolecules.map((molecule) => (
                               <tr
                                 key={molecule.id}
                                 onClick={() => openEditMoleculeForm(molecule)}
@@ -1745,6 +1890,24 @@ export function AdminDashboard() {
                               >
                                 <td className="px-6 py-4 font-medium text-gray-900">{molecule.name}</td>
                                 <td className="px-6 py-4 text-sm text-gray-600">{molecule.slug}</td>
+                                <td className="px-6 py-4">
+                                  <div className="flex justify-end">
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      className="border-gray-300"
+                                      onKeyDown={(event) => event.stopPropagation()}
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        void deleteMolecule(molecule.id, molecule.name);
+                                      }}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                      Delete
+                                    </Button>
+                                  </div>
+                                </td>
                               </tr>
                             ))}
                           </tbody>
@@ -1834,6 +1997,18 @@ export function AdminDashboard() {
                         View on site
                       </Link>
                     </Button>
+                    {editingMolecule ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="border-red-200 text-red-600 hover:border-red-300 hover:bg-red-50 hover:text-red-700"
+                        onClick={() => void deleteMolecule(editingMolecule.id, editingMolecule.name)}
+                        disabled={moleculeSaving}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Delete
+                      </Button>
+                    ) : null}
                   </div>
                 </div>
 
@@ -1901,8 +2076,8 @@ export function AdminDashboard() {
                         </label>
                         <Input
                           id="molecule-image-url"
-                          type="url"
-                          value={getImageInputValue(moleculeForm.imageUrl)}
+                          type="text"
+                          value={moleculeForm.clearImage ? "" : getImageInputValue(moleculeForm.imageUrl)}
                           onChange={(event) =>
                             setMoleculeForm((current) => ({
                               ...current,
@@ -1914,21 +2089,40 @@ export function AdminDashboard() {
                           className={fieldClassName}
                         />
                       </div>
-                      <label className="inline-flex items-center gap-2 text-sm text-gray-700">
-                        <input
-                          type="checkbox"
-                          checked={moleculeForm.clearImage}
-                          onChange={(event) =>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="border-gray-300"
+                          onClick={() =>
                             setMoleculeForm((current) => ({
                               ...current,
-                              clearImage: event.target.checked,
-                              imageUrl: event.target.checked ? "" : current.imageUrl,
+                              clearImage: true,
                             }))
                           }
-                          className="h-4 w-4 rounded border-gray-300 text-[#0D7377] focus:ring-[#0D7377]"
-                        />
-                        Clear
-                      </label>
+                          disabled={!moleculeForm.imageUrl && !moleculeForm.clearImage}
+                        >
+                          Delete image
+                        </Button>
+                        {moleculeForm.clearImage ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="border-gray-300"
+                            onClick={() =>
+                              setMoleculeForm((current) => ({
+                                ...current,
+                                clearImage: false,
+                              }))
+                            }
+                          >
+                            Undo
+                          </Button>
+                        ) : null}
+                      </div>
+                      {moleculeForm.clearImage ? <p className="text-xs text-amber-700">This image will be removed when you save.</p> : null}
                       <div className="space-y-2">
                         <label htmlFor="molecule-image" className="text-xs font-medium text-gray-700">
                           Upload file
@@ -2094,8 +2288,8 @@ export function AdminDashboard() {
                     ) : null}
 
                     {categories.map((category) => (
-                      <>
-                        <tr key={category.id}>
+                      <Fragment key={category.id}>
+                        <tr>
                           <td className="px-6 py-4 font-medium text-gray-900">{category.name}</td>
                           <td className="px-6 py-4 text-sm text-gray-600">{category.slug}</td>
                           <td className="px-6 py-4 text-sm text-gray-600">{category.description || "No description"}</td>
@@ -2149,7 +2343,7 @@ export function AdminDashboard() {
                             </td>
                           </tr>
                         ) : null}
-                      </>
+                      </Fragment>
                     ))}
                   </tbody>
                 </table>

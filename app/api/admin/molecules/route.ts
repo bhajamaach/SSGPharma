@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { requireAdminApi, requireAdminMutation } from "@/lib/require-admin";
-import { parseJsonBody } from "@/lib/api";
+import { mutationErrorResponse, parseJsonBody } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
 import { createMoleculeSchema } from "@/lib/validators/molecule";
 
@@ -64,9 +64,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(molecule, { status: 201 });
   } catch (error) {
     console.error("Error creating molecule:", error);
-    return NextResponse.json(
-      { error: "Failed to create molecule" },
-      { status: 500 }
-    );
+    return mutationErrorResponse(error, "Failed to create molecule");
   }
 }

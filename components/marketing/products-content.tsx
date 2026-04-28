@@ -20,6 +20,7 @@ type ProductListItem = {
   imageUrl2: string | null;
   imageUrl3: string | null;
   pricePaise: number;
+  priceSuffix: string | null;
   isActive: boolean;
   category: {
     id: string;
@@ -144,7 +145,7 @@ export function ProductsContent({ items, division, initialQuery = "" }: Props) {
                   <div className="mt-auto flex items-center justify-between gap-2 pt-2 border-t border-border/50">
                     <div className="flex items-center gap-2">
                       <span className="font-semibold tabular-nums text-foreground">
-                        {formatInrFromPaise(m.pricePaise)}
+                        {formatInrFromPaise(m.pricePaise)}{m.priceSuffix ? ` ${m.priceSuffix}` : ""}
                       </span>
                       <span
                         className={cn(

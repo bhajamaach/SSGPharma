@@ -19,6 +19,7 @@ type DivisionProductItem = {
   imageUrl2: string | null;
   imageUrl3: string | null;
   pricePaise: number;
+  priceSuffix: string | null;
   isActive: boolean;
 };
 
@@ -108,7 +109,7 @@ export function DivisionProductsList({ items, division }: Props) {
 
                     <div className="mt-auto flex items-end justify-between gap-2">
                       <span className="text-sm font-semibold tabular-nums text-foreground">
-                        {formatInrFromPaise(item.pricePaise)}
+                        {formatInrFromPaise(item.pricePaise)}{item.priceSuffix ? ` ${item.priceSuffix}` : ""}
                       </span>
                       <span
                         className={cn(

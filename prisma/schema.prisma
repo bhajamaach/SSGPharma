@@ -20,6 +20,8 @@ model Product {
   // Pricing and Packaging
   pricePaise            Int      // Store in paise (1 INR = 100 paise)
   mrpPaise              Int?     // MRP in paise
+  priceSuffix           String?  // Optional suffix like "/vial", "/bottle", "/strip"
+  mrpSuffix             String?  // Optional suffix for MRP
   dosage                String?  // e.g. "100mg"
   packSize              String?  // e.g. "30 tablets"
   salts                 String?  // comma-separated or single molecule reference

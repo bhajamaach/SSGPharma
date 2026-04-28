@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { requireAdminApi, requireAdminMutation } from "@/lib/require-admin";
-import { parseJsonBody } from "@/lib/api";
+import { mutationErrorResponse, parseJsonBody } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
 import { updateMoleculeSchema } from "@/lib/validators/molecule";
 
@@ -82,10 +82,7 @@ export async function PATCH(
     return NextResponse.json(molecule);
   } catch (error) {
     console.error("Error updating molecule:", error);
-    return NextResponse.json(
-      { error: "Failed to update molecule" },
-      { status: 500 }
-    );
+    return mutationErrorResponse(error, "Failed to update molecule");
   }
 }
 
@@ -119,9 +116,6 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error deleting molecule:", error);
-    return NextResponse.json(
-      { error: "Failed to delete molecule" },
-      { status: 500 }
-    );
+    return mutationErrorResponse(error, "Failed to delete molecule");
   }
 }

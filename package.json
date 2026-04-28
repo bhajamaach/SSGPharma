@@ -10,6 +10,7 @@
     "start": "PORT=5050 node .next/standalone/server.js",
     "start:standalone": "node .next/standalone/server.js",
     "lint": "eslint",
+    "db:reset:render": "bash scripts/render-reset-db.sh",
     "postinstall": "prisma generate"
   },
   "prisma": {

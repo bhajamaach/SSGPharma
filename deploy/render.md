@@ -87,4 +87,21 @@ On first successful login, the app auto-creates the initial admin row if one doe
 
 ### You changed env vars but behavior looks stale
 
-Redeploy the service from Render after changing env vars.
+Use **Manual Deploy -> Deploy latest commit** after changing env vars. A plain restart is not enough when you need a fresh build/runtime with new environment values.
+
+### Fresh reset the Render SQLite database
+
+This deletes the SQLite database on the Render persistent disk and reapplies migrations. Run it only when you intentionally want to wipe products, molecules, categories, contacts, admin users, and inquiries.
+
+In the Render Shell for the service:
+
+```bash
+cd /opt/render/project/src
+CONFIRM_RESET_DB=reset-render-db pnpm db:reset:render
+```
+
+After it finishes:
+
+1. Restart the service from Render so the app reconnects against the fresh database file.
+2. Sign in with the `ADMIN_PASSWORD` environment variable once to bootstrap a fresh admin account.
+3. Change that bootstrap password immediately from the admin settings screen.
