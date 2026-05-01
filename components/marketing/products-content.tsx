@@ -108,13 +108,13 @@ export function ProductsContent({ items, division, initialQuery = "" }: Props) {
               >
                 {/* Image Section */}
                 {m.imageUrl1 || m.imageUrl2 || m.imageUrl3 ? (
-                  <div className="relative h-44 w-full overflow-hidden bg-muted">
+                  <div className="relative h-44 w-full overflow-hidden bg-accent/10">
                     <ManagedImage
                       src={m.imageUrl1 || m.imageUrl2 || m.imageUrl3 || ""}
                       alt={m.name}
                       fill
                       sizes="(max-width: 768px) 100vw, 33vw"
-                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      className="h-full w-full object-contain p-3 transition-transform duration-300 group-hover:scale-[1.02]"
                     />
                   </div>
                 ) : (

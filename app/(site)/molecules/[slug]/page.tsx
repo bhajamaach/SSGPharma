@@ -210,8 +210,8 @@ export default async function MoleculeDetailPage({ params }: Props) {
       ) : null}
 
       <article className="bg-background">
-        <section className="border-b border-border/60 bg-[radial-gradient(circle_at_top_left,_rgba(13,115,119,0.14),_transparent_42%),linear-gradient(180deg,rgba(249,250,251,0.96),rgba(255,255,255,0.92))]">
-          <div className="mx-auto grid max-w-[1400px] gap-8 px-4 py-8 md:px-6 lg:grid-cols-[1.02fr_0.98fr] lg:px-8 lg:py-12">
+        <section className="border-b border-border/60 bg-[radial-gradient(circle_at_top_left,color-mix(in_oklch,var(--primary)_22%,transparent),transparent_40%),linear-gradient(180deg,color-mix(in_oklch,var(--background)_86%,white),var(--background))] dark:bg-[radial-gradient(circle_at_top_left,color-mix(in_oklch,var(--primary)_28%,transparent),transparent_42%),linear-gradient(180deg,color-mix(in_oklch,var(--background)_92%,black),var(--background))]">
+          <div className="mx-auto grid max-w-350 gap-8 px-4 py-8 md:px-6 lg:grid-cols-[1.06fr_0.94fr] lg:px-8 lg:py-12">
             <div className="space-y-6">
               <Breadcrumbs
                 crumbs={[
@@ -232,21 +232,22 @@ export default async function MoleculeDetailPage({ params }: Props) {
                   {molecule.name}
                 </h1>
                 {molecule.synonyms ? <p className="text-sm leading-6 text-muted-foreground md:text-base">Synonyms: {molecule.synonyms}</p> : null}
-                <p className="max-w-3xl text-base leading-relaxed text-muted-foreground md:text-lg">
-                  {molecule.overview ||
-                    `${molecule.name} is presented here with its overview, approval history, uses, administration, side effects, precautions, and reference material.`}
-                </p>
 
-                <div className="relative min-h-[320px] overflow-hidden rounded-[2rem] border border-border/70 bg-muted shadow-sm md:hidden">
+                <div className="relative flex min-h-80 w-full items-center justify-center overflow-hidden rounded-[2rem] border border-border/70 bg-accent/10 shadow-sm md:hidden">
                   <ManagedImage
                     src={imageSrc}
                     alt={`${molecule.name} molecule page image`}
                     fill
                     priority
                     sizes="100vw"
-                    className="object-cover"
+                    className="object-contain"
                   />
                 </div>
+
+                <p className="max-w-3xl text-base leading-relaxed text-foreground/90 md:text-lg">
+                  {molecule.overview ||
+                    `${molecule.name} is presented here with its overview, approval history, uses, administration, side effects, precautions, and reference material.`}
+                </p>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-3">
@@ -278,20 +279,20 @@ export default async function MoleculeDetailPage({ params }: Props) {
               </div>
             </div>
 
-            <div className="hidden min-h-[420px] overflow-hidden rounded-[2rem] border border-border/70 bg-muted shadow-sm md:block">
+            <div className="relative hidden min-h-96 w-full items-center justify-center overflow-hidden rounded-[2rem] border border-border/70 bg-accent/10 shadow-sm lg:min-h-[420px] md:flex">
               <ManagedImage
                 src={imageSrc}
                 alt={`${molecule.name} molecule page image`}
                 fill
                 priority
                 sizes="(max-width: 1024px) 100vw, 46vw"
-                className="object-cover"
+                className="object-contain"
               />
             </div>
           </div>
         </section>
 
-        <section className="mx-auto max-w-[1400px] space-y-8 px-4 py-10 md:px-6 lg:px-8 lg:py-14">
+        <section className="mx-auto max-w-350 space-y-8 px-4 py-10 md:px-6 lg:px-8 lg:py-14">
           <MoleculeSection title="Overview" content={molecule.overview} />
           <MoleculeSection title="Background and Date of Approval" content={molecule.backgroundAndApproval} />
           <MoleculeSection title="Uses" content={molecule.uses} />

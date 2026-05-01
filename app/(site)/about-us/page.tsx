@@ -48,9 +48,8 @@ export default function AboutPage() {
               About SSG Pharma
             </h1>
             <p className="mt-5 text-muted-foreground leading-relaxed md:text-lg">
-              We are a pharmaceutical wholesale team built around one boring superpower: we actually answer the phone when a
-              ward is out of stock on a Friday evening. No chatbot theatre — just people who read prescriptions like puzzles
-              and stay on the line until something moves.
+              SSGPharma is a premier pharmaceutical sourcing and distribution company headquartered in Gurugram, Haryana, India. We have built an unmatched network of manufacturers, hospitals, and healthcare institutions across the country and internationally.
+              Our commitment to quality, reliability, and patient-centric supply chains has made us the preferred partner for hospitals, clinics, and healthcare organisations seeking critical medicines across speciality therapy areas.
             </p>
           </FadeIn>
         </div>

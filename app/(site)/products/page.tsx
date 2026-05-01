@@ -127,7 +127,7 @@ export default async function ProductsPage({ searchParams }: Props) {
               <p className="mt-5 max-w-xl text-lg text-muted-foreground leading-relaxed">
                 {division
                   ? division.blurb
-                  : "Every row below is indexed for search with its own URL — add clear names and salt strings in admin so Google (and doctors) can find you."}
+                  : "Explore our specialized pharmaceutical portfolio across six critical healthcare domains. Each category features rigorously sourced, high quality medicines from leading manufacturers."}
               </p>
               <div className="mt-8 flex flex-wrap gap-2">
                 <Link

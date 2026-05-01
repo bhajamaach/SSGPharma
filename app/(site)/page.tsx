@@ -111,10 +111,10 @@ export default async function HomePage() {
       <section className="w-full py-16 md:py-24">
         <div className="mx-auto max-w-[1400px] px-4 md:px-8">
           <FadeIn>
-            <h2 className="font-[family-name:var(--font-display)] text-3xl tracking-tight md:text-4xl">Therapy divisions</h2>
+            <h2 className="font-[family-name:var(--font-display)] text-3xl tracking-tight md:text-4xl">Medicine Categories</h2>
             <p className="mt-4 max-w-2xl text-lg text-muted-foreground">
-              Hover <strong className="font-medium text-foreground">Products</strong> in the nav for a quick grid, or open a
-              division page — each has unique text and imagery so search engines see real depth, not duplicate fluff.
+              All <strong className="font-medium text-foreground">medicines</strong> are sourced from certified suppliers to ensure quality and safety.
+             Choose from a variety of healthcare essentials backed by trusted pharmaceutical standards.
             </p>
           </FadeIn>
           <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

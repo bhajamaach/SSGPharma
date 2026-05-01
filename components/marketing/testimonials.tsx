@@ -1,7 +1,6 @@
 "use client";
 
 import { FadeIn } from "@/components/motion/fade-in";
-import { StaggerItem, StaggerList } from "@/components/motion/stagger-list";
 import { Star } from "lucide-react";
 
 const testimonials = [
@@ -29,7 +28,21 @@ const testimonials = [
     role: "Clinical Director, Nephrology Center",
     rating: 5,
   },
+  {
+    quote: "They do not overpromise. If a line is delayed, we know early enough to plan substitutions and keep our consultants informed.",
+    author: "Sanjay Menon",
+    role: "Purchase Manager, City Care Hospital",
+    rating: 5,
+  },
+  {
+    quote: "The biggest difference is follow-through. Batch details, invoices, dispatch status — their team keeps the procurement loop tidy.",
+    author: "Farah Khan",
+    role: "Operations Lead, Multi-specialty Clinic Network",
+    rating: 5,
+  },
 ];
+
+const carouselTestimonials = [...testimonials, ...testimonials];
 
 export function TestimonialsSection() {
   return (
@@ -44,25 +57,62 @@ export function TestimonialsSection() {
           </p>
         </FadeIn>
 
-        <StaggerList className="grid gap-6 md:grid-cols-2">
-          {testimonials.map((testimonial, i) => (
-            <StaggerItem key={i}>
-              <div className="group rounded-2xl border border-border/80 bg-card/50 p-6 transition-all hover:border-border hover:bg-card hover:shadow-md md:p-7">
+        <div className="testimonial-carousel relative -mx-4 overflow-hidden px-4 md:-mx-8 md:px-8">
+          <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-10 bg-gradient-to-r from-background to-transparent md:w-20" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-10 bg-gradient-to-l from-background to-transparent md:w-20" />
+
+          <div className="testimonial-track flex w-max gap-5 py-1">
+            {carouselTestimonials.map((testimonial, i) => (
+              <article
+                key={`${testimonial.author}-${i}`}
+                aria-hidden={i >= testimonials.length}
+                className="testimonial-card group flex min-h-[280px] w-[min(82vw,360px)] shrink-0 flex-col rounded-2xl border border-border/80 bg-card/50 p-6 transition-all hover:border-border hover:bg-card hover:shadow-md focus-within:border-border focus-within:bg-card focus-within:shadow-md md:w-[420px] md:p-7"
+              >
                 <div className="mb-4 flex gap-1">
                   {Array.from({ length: testimonial.rating }).map((_, j) => (
                     <Star key={j} className="size-4 fill-primary text-primary" />
                   ))}
                 </div>
                 <p className="leading-relaxed text-foreground">&ldquo;{testimonial.quote}&rdquo;</p>
-                <div className="mt-5 border-t border-border/40 pt-4">
+                <div className="mt-auto border-t border-border/40 pt-4">
                   <p className="font-medium text-foreground">{testimonial.author}</p>
                   <p className="text-xs text-muted-foreground">{testimonial.role}</p>
                 </div>
-              </div>
-            </StaggerItem>
-          ))}
-        </StaggerList>
+              </article>
+            ))}
+          </div>
+        </div>
       </div>
+
+      <style>
+        {`
+          .testimonial-track {
+            animation: testimonial-scroll 42s linear infinite;
+          }
+
+          .testimonial-carousel:hover .testimonial-track,
+          .testimonial-carousel:focus-within .testimonial-track {
+            animation-play-state: paused;
+          }
+
+          @keyframes testimonial-scroll {
+            from {
+              transform: translateX(0);
+            }
+            to {
+              transform: translateX(calc(-50% - 0.625rem));
+            }
+          }
+
+          @media (prefers-reduced-motion: reduce) {
+            .testimonial-track {
+              animation: none;
+              flex-wrap: wrap;
+              width: 100%;
+            }
+          }
+        `}
+      </style>
     </section>
   );
 }

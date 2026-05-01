@@ -39,24 +39,24 @@ export function Navbar() {
 
   return (
     <header ref={headerRef} className="sticky top-0 z-50 w-full border-b border-border bg-background/70 backdrop-blur-lg supports-backdrop-filter:bg-background/60 transition-all duration-300">
-      <nav className="mx-auto flex w-full max-w-[1400px] items-center justify-between gap-4 px-4 py-3 md:px-6 lg:px-8">
+      <nav className="mx-auto flex w-full max-w-[1400px] items-center justify-between gap-4 px-4 py-2 md:px-6 md:py-2.5 lg:px-8">
         <Link href="/" className="group flex shrink-0 items-center">
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/tlogo.png"
               alt="SSG Pharma Logo"
-              width={120}
-              height={40}
-              className="w-[120px] transition-opacity group-hover:opacity-80 dark:hidden"
+              width={112}
+              height={37}
+              className="w-[104px] transition-opacity group-hover:opacity-80 sm:w-[112px] dark:hidden"
             />
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/tlogo-white.png"
               alt="SSG Pharma Logo"
-              width={120}
-              height={40}
-              className="hidden w-[120px] transition-opacity group-hover:opacity-80 dark:block"
+              width={112}
+              height={37}
+              className="hidden w-[104px] transition-opacity group-hover:opacity-80 sm:w-[112px] dark:block"
             />
           </>
         </Link>
@@ -225,7 +225,7 @@ export function Navbar() {
           <ThemeToggle />
           <button
             type="button"
-            className="inline-flex size-10 items-center justify-center rounded-md border border-border bg-background text-foreground shadow-xs"
+            className="inline-flex size-9 items-center justify-center rounded-md border border-border bg-background text-foreground shadow-xs"
             aria-expanded={open}
             aria-label={open ? "Close menu" : "Open menu"}
             onClick={() => {
@@ -233,7 +233,7 @@ export function Navbar() {
               setMobilePanel(null);
             }}
           >
-            {open ? <X className="size-5" /> : <Menu className="size-5" />}
+            {open ? <X className="size-4.5" /> : <Menu className="size-4.5" />}
           </button>
         </div>
       </nav>

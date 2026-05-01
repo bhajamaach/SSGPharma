@@ -56,7 +56,7 @@ export function Hero() {
             <div className="h-1 w-1 rounded-full bg-border" />
             <div className="flex items-center gap-2">
               <div className="size-2 rounded-full bg-primary" />
-              <span>Nationwide delivery</span>
+              <span>Worldwide delivery</span>
             </div>
           </div>
         </div>
